@@ -1,1 +1,1708 @@
-[{"id":"e4a05f0d.4915a","type":"tab","label":"Flow 1"},{"id":"2f0582b8.de5d5e","type":"tab","label":"Flow 2"},{"id":"b904d58d.d31878","type":"tab","label":"Flow 3"},{"id":"14e86b97.592304","type":"mqtt-broker","z":"","broker":"192.168.2.2","port":"1883","clientid":"","usetls":false,"compatmode":true,"keepalive":"60","cleansession":true,"willTopic":"","willQos":"0","willPayload":"","birthTopic":"","birthQos":"0","birthPayload":""},{"id":"67488568.cb25ac","type":"influxdb","z":"","hostname":"192.168.2.2","port":"8086","protocol":"http","database":"temp2","name":"","usetls":false,"tls":""},{"id":"5de16f02.256ca","type":"influxdb","z":"","hostname":"192.168.2.2","port":"8086","protocol":"http","database":"doors","name":"","usetls":false,"tls":""},{"id":"6bdddf0b.2d47e","type":"influxdb","z":"","hostname":"192.168.2.2","port":"8086","protocol":"http","database":"environment","name":"","usetls":false,"tls":""},{"id":"1e145fc3.17918","type":"alexa-home-conf","z":"","username":"alexf"},{"id":"ba985e1e.53aea","type":"wemo-dev","z":"","name":""},{"id":"4dc2b4e4.b3b6ac","type":"wemo-dev","z":"","name":""},{"id":"b51add9c.d6ba1","type":"wemo-dev","z":"","name":""},{"id":"d87d2ced.a8f74","type":"wemo-dev","z":"","name":""},{"id":"6a9f9ca4.90e124","type":"http request","z":"2f0582b8.de5d5e","name":"Data source","method":"GET","url":"http://www.aviationweather.gov{{{payload}}}","tls":"","x":250,"y":140,"wires":[["e54beeb5.bb632"]]},{"id":"325df2d3.24195e","type":"inject","z":"2f0582b8.de5d5e","name":"Weather report","topic":"","payload":"/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString=EDDL","payloadType":"str","repeat":"600","crontab":"","once":true,"x":87,"y":140,"wires":[["6a9f9ca4.90e124"]]},{"id":"e54beeb5.bb632","type":"xml","z":"2f0582b8.de5d5e","name":"","x":396,"y":140,"wires":[["39430a09.09b376","b8d1654f.3259a8"]]},{"id":"351ce30a.b0f93c","type":"debug","z":"2f0582b8.de5d5e","name":"","active":true,"console":"false","complete":"payload","x":730,"y":80,"wires":[]},{"id":"39430a09.09b376","type":"function","z":"2f0582b8.de5d5e","name":"Parse METAR","func":"var METARdata = msg.payload.response.data[0].METAR[0];\nvar wind = METARdata.wind_speed_kt[0];\nvar gusts = wind; //if wind_gust_kt is not present, value defaults to wind_speed_kt\n   if (typeof METARdata.wind_gust_kt != \"undefined\") {\n\t   gusts = METARdata.wind_gust_kt[0];\n       }\nvar altim = METARdata.altim_in_hg[0];\nvar pressure = Math.round(altim * 33.8637526); //convert hg to mb\nvar dew = parseFloat(METARdata.dewpoint_c[0]);\nvar temp = parseFloat(METARdata.temp_c[0]);\n\n//August-Roche-Magnus approximation to calculate humidity\nvar constA = 17.625;\nvar constB = 243.04;\nvar rh_numer = 100.0*Math.exp((constA*eval(dew))/(eval(dew)+constB));\nvar rh_denom = Math.exp((constA*eval(temp))/(eval(temp)+constB));\nvar rh_hum   = (rh_numer/rh_denom);\nvar humidity = Math.round(rh_hum);\n\n//msg.payload = ((wind) + (\",\") + (gusts) + (\",\") + (humidity) + (\",\") + (pressure) + (\",\") + (temp));\n\n\nvar msgtemp, msgdewpt, msgrelhum, msgbaro;\nmsgtemp = {payload : [{\n    \"value\" : temp\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"Celsius\",\n    \"source\" : \"METAR\"\n}]\n//measurement : {\n//    \"name\": \"temp\"\n//}\n};\n\n/////////////////////////////\nmsgdewpt = {payload : [{\n    \"value\" : dew\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"Celsius\",\n    \"source\" : \"METAR\"\n}]};\n//msgdewpt.measurement = {\n//    \"name\": \"dewPt\"\n//}\n/////////////////////////////\n\nmsgrelhum= {payload : [{\n    \"value\" : humidity\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"%\",\n    \"source\" : \"METAR\"\n}]};\n\n/////////////////////////////\nmsgbaro = {payload : [{\n    \"value\" : pressure\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"hPa\",\n    \"source\" : \"METAR\"\n}]};\n\nreturn [ msgtemp, msgdewpt, msgrelhum, msgbaro ];","outputs":"4","noerr":0,"x":551,"y":140,"wires":[["351ce30a.b0f93c","5bfa94c0.31f68c"],["8eec9996.94eaa8","351ce30a.b0f93c"],["5d057668.6851f8","351ce30a.b0f93c"],["95da0052.98e61","351ce30a.b0f93c"]],"outputLabels":["temp","dewpt","relhum","pressure"]},{"id":"7bc650ea.bef54","type":"comment","z":"2f0582b8.de5d5e","name":"NOAA Weather data","info":"Retrieving Finningly Airport METAR feed","x":82,"y":101,"wires":[]},{"id":"ef721908.1dcbe8","type":"influxdb out","z":"2f0582b8.de5d5e","influxdb":"6bdddf0b.2d47e","name":"","measurement":"","precision":"","retentionPolicy":"","x":850,"y":140,"wires":[]},{"id":"b8d1654f.3259a8","type":"debug","z":"2f0582b8.de5d5e","name":"","active":true,"console":"false","complete":"false","x":515,"y":214,"wires":[]},{"id":"5bfa94c0.31f68c","type":"influxdb out","z":"2f0582b8.de5d5e","influxdb":"6bdddf0b.2d47e","name":"","measurement":"temp","precision":"","retentionPolicy":"","x":870,"y":200,"wires":[]},{"id":"8eec9996.94eaa8","type":"influxdb out","z":"2f0582b8.de5d5e","influxdb":"6bdddf0b.2d47e","name":"","measurement":"dewPt","precision":"","retentionPolicy":"","x":884,"y":255,"wires":[]},{"id":"95da0052.98e61","type":"influxdb out","z":"2f0582b8.de5d5e","influxdb":"6bdddf0b.2d47e","name":"","measurement":"baro","precision":"","retentionPolicy":"","x":860,"y":360,"wires":[]},{"id":"5d057668.6851f8","type":"influxdb out","z":"2f0582b8.de5d5e","influxdb":"6bdddf0b.2d47e","name":"","measurement":"relHum","precision":"","retentionPolicy":"","x":895,"y":311,"wires":[]},{"id":"5e751814.15d468","type":"mqtt in","z":"e4a05f0d.4915a","name":"temp","topic":"sensor/+/temperature/degreeCelsius","qos":"2","broker":"14e86b97.592304","x":151.01953125,"y":682.00390625,"wires":[["2273872a.7cba88","d63d413.1893ac","14505148.061dbf"]]},{"id":"f8d0c682.7e4c88","type":"mqtt in","z":"e4a05f0d.4915a","name":"baro","topic":"sensor/+/barometer/hectoPascal","qos":"2","broker":"14e86b97.592304","x":151.01953125,"y":622.00390625,"wires":[["2273872a.7cba88","d63d413.1893ac","14505148.061dbf"]]},{"id":"51a58458.29448c","type":"mqtt in","z":"e4a05f0d.4915a","name":"relHum","topic":"sensor/+/humidity/percentRelative","qos":"2","broker":"14e86b97.592304","x":150.01953125,"y":574.00390625,"wires":[["2273872a.7cba88","d63d413.1893ac","14505148.061dbf"]]},{"id":"82ef0e27.e4d7e","type":"mqtt in","z":"e4a05f0d.4915a","name":"dewPt","topic":"sensor/+/humidity/dewPoint","qos":"2","broker":"14e86b97.592304","x":151.01953125,"y":522.00390625,"wires":[["2273872a.7cba88","d63d413.1893ac","14505148.061dbf"]]},{"id":"20a80a20.4f53e6","type":"influxdb out","z":"e4a05f0d.4915a","influxdb":"6bdddf0b.2d47e","name":"","measurement":"temp","precision":"","retentionPolicy":"","x":711.01953125,"y":682.00390625,"wires":[]},{"id":"2572ea75.bf25f6","type":"influxdb out","z":"e4a05f0d.4915a","influxdb":"6bdddf0b.2d47e","name":"","measurement":"dewPt","precision":"","retentionPolicy":"","x":711.01953125,"y":522.00390625,"wires":[]},{"id":"d63d413.1893ac","type":"function","z":"e4a05f0d.4915a","name":"sensor","func":"\n\n\nvar location, source, msgout;\n\n// Configure here where each Sensor is located and which Sensor module it uses\n\nif (msg.topic.indexOf(\"sensor/600194755a36\") > -1 ){\n    location = \"Studio\"\n    source = \"BME280\"\n}\n\nif (msg.topic.indexOf(\"sensor/600194755a23\") > -1 ){\n    location = \"Keller\"\n    source = \"BME280\"\n}\n\nvar mac = msg.topic.substring(7,19);\nmsgout = {payload: [{\n        \"value\": parseFloat(msg.payload)\n    },\n    {\n        \"location\": location,\n        \"source\": source,\n        \"mac\": mac\n    }]}; \n\nif (msg.topic.indexOf(\"dewPoint\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [msgout, null, null, null]);\n}\n\nif (msg.topic.indexOf(\"percentRelative\") > -1 ) {\n    msgout.payload[1].unit =\"%\";\n    node.send ( [null, msgout, null, null]);\n}\n\nif (msg.topic.indexOf(\"hectoPascal\") > -1) {\n    msgout.payload[1].unit =\"hPa\";\n    node.send ( [null, null, msgout, null]);\n}\n\nif (msg.topic.indexOf(\"degreeCelsius\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [null, null, null, msgout]);\n}\n","outputs":"4","noerr":0,"x":371.01953125,"y":522.00390625,"wires":[["88ccd802.18a3b8","2572ea75.bf25f6"],["88ccd802.18a3b8","cf28b48c.d5e6b8"],["88ccd802.18a3b8","760fe46a.b96a3c"],["88ccd802.18a3b8","20a80a20.4f53e6"]]},{"id":"88ccd802.18a3b8","type":"debug","z":"e4a05f0d.4915a","name":"","active":false,"console":"false","complete":"true","x":636.01953125,"y":779.00390625,"wires":[]},{"id":"cf28b48c.d5e6b8","type":"influxdb out","z":"e4a05f0d.4915a","influxdb":"6bdddf0b.2d47e","name":"","measurement":"relHum","precision":"","retentionPolicy":"","x":701.01953125,"y":570.00390625,"wires":[]},{"id":"760fe46a.b96a3c","type":"influxdb out","z":"e4a05f0d.4915a","influxdb":"6bdddf0b.2d47e","name":"","measurement":"baro","precision":"","retentionPolicy":"","x":699.01953125,"y":632.00390625,"wires":[]},{"id":"2273872a.7cba88","type":"debug","z":"e4a05f0d.4915a","name":"","active":false,"console":"false","complete":"true","x":410.13672637939453,"y":785.6874952316284,"wires":[]},{"id":"59b29b74.3b8ee4","type":"mqtt in","z":"e4a05f0d.4915a","name":"backdoor","topic":"sensor/+/backdoor","qos":"2","broker":"14e86b97.592304","x":154.13670349121094,"y":229.35155963897705,"wires":[["986709cb.b6d538","5bec9ecb.7e3fa","91a55baa.d675c8","b9218e2d.a91de"]]},{"id":"96578e86.55c9e","type":"mqtt in","z":"e4a05f0d.4915a","name":"garagedoor","topic":"sensor/+/garagedoor","qos":"2","broker":"14e86b97.592304","x":158.14060974121094,"y":281.36327838897705,"wires":[["5bec9ecb.7e3fa","986709cb.b6d538","91a55baa.d675c8","b9218e2d.a91de"]]},{"id":"42b87665.c6de48","type":"http request","z":"e4a05f0d.4915a","name":"pushbullet","method":"POST","ret":"txt","url":"https://api.pushbullet.com/v2/pushes","tls":"","x":870.13671875,"y":260.1289005279541,"wires":[["8084eb7d.15aac8"]]},{"id":"5bec9ecb.7e3fa","type":"function","z":"e4a05f0d.4915a","name":"pushbulletmsg","func":"var msgout;\nvar date, ToD;\nvar msg_intervall = 1800000 //30 min\ndate = new Date();\nToD = date.getHours();\n\n// when was the last message received\n// get stored values from flow\nvar last_garagedoor_rcvd=flow.get('last_garagedoor_rcvd') || 0;\nvar last_backdoor_rcvd=flow.get('last_backdoor_rcvd') || 0;\n\n//when was the last warning message sent\nvar last_garagedoor_sent=flow.get('last_garagedoor_sent') || 0;\nvar last_backdoor_sent=flow.get('last_backdoor_sent') || 0;\n\nnode.warn(\"last_garagedoor_rcvd: \"+last_garagedoor_rcvd);\nnode.warn(\"last_backdoor_rcvd: \"+last_backdoor_rcvd);\n\nif (msg.topic.indexOf(\"garagedoor\") > -1){\n    // avoid bounces\n    var diff = Date.now() - last_garagedoor_rcvd;\n    if (diff < 1000) return null;\n    //node.warn (\"diff: \"+diff)\n    msgout = {payload: '{\"body\":\"Das Garagentor steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}'};\n    last_garagedoor_rcvd = Date.now();\n}\n\nif (msg.topic.indexOf(\"backdoor\") > -1){\n    // avoid bounces\n    var diff = Date.now() - last_backdoor_rcvd;\n    if (diff < 1000) return null;\n    //node.warn (\"diff: \"+diff)\n    msgout = {payload: '{\"body\":\"Die Garagentür steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}'};\n    last_backdoor_rcvd = Date.now();\n}\n\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nflow.set('last_garagedoor_rcvd',last_garagedoor_rcvd);\nflow.set('last_backdoor_rcvd',last_backdoor_rcvd);\n\n// only send message if door is open\nif (msg.payload.indexOf(\"closed\") > -1) return;\n\n//only send messages at night\nif ((ToD > 5) && (ToD < 20)) return null;\nnode.warn (\"Time of Day: \" + ToD + \", sending message\");\n\n\n\n// only if last message was sent more than msg_interval (e.g. 30) mins before,\n// update the corresponding values in the flow\n// and actually send message\nif (msg.topic.indexOf(\"garagedoor\") > -1){\n    var diff = Date.now() - last_garagedoor_sent;\n    if (diff < msg_intervall) return null;\n    flow.set('last_garagedoor_sent', Date.now());\n}\n\nif (msg.topic.indexOf(\"backdoor\") > -1){\n    var diff = Date.now() - last_backdoor_sent;\n    if (diff < msg_intervall) return null;\n    flow.set('last_backdoor_sent',Date.now());\n}\n\n\nreturn msgout;","outputs":1,"noerr":0,"x":403.13282012939453,"y":259.2421865463257,"wires":[["42b87665.c6de48","94896caf.31bad"]]},{"id":"986709cb.b6d538","type":"debug","z":"e4a05f0d.4915a","name":"","active":false,"console":"false","complete":"false","x":399.13282775878906,"y":152.93359184265137,"wires":[]},{"id":"8084eb7d.15aac8","type":"debug","z":"e4a05f0d.4915a","name":"","active":true,"console":"false","complete":"false","x":1056.148452758789,"y":256.93359756469727,"wires":[]},{"id":"94896caf.31bad","type":"debug","z":"e4a05f0d.4915a","name":"","active":true,"console":"false","complete":"payload","x":591.1367340087891,"y":301.93749618530273,"wires":[]},{"id":"91a55baa.d675c8","type":"function","z":"e4a05f0d.4915a","name":"influx","func":"var msgout, location, status;\n\nif (msg.topic.indexOf(\"garagedoor\") > -1) location = \"garage_front\";\nif (msg.topic.indexOf(\"backdoor\") > -1) location = \"garage_back\";\nnode.warn (location);\n\nif (msg.payload.indexOf(\"closed\") > -1) status = 0;\nif (msg.payload.indexOf(\"open\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": location,\n    }]\n}; \n\n\nreturn msgout;","outputs":1,"noerr":0,"x":377.1367492675781,"y":105.2265567779541,"wires":[["b5f11eb.1be4de","2cb312e9.067bee"]]},{"id":"b5f11eb.1be4de","type":"influxdb out","z":"e4a05f0d.4915a","influxdb":"5de16f02.256ca","name":"","measurement":"status","precision":"","retentionPolicy":"","x":726.1485443115234,"y":102.5351619720459,"wires":[]},{"id":"2cb312e9.067bee","type":"debug","z":"e4a05f0d.4915a","name":"","active":false,"console":"false","complete":"false","x":555.1367340087891,"y":27.69923210144043,"wires":[]},{"id":"9d97d63e.272b98","type":"function","z":"e4a05f0d.4915a","name":"watchdog","func":"\nmsg = {payload: '{\"body\":\"No door status received for a while!\",\"title\":\"Door Status Fail\",\"type\":\"note\"}'};\nmsg.headers = {};\nmsg.headers['Content-Type'] = 'application/json';\nmsg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nreturn msg;","outputs":1,"noerr":0,"x":661.1367225646973,"y":198.9922161102295,"wires":[["42b87665.c6de48","d8f048be.043a48"]]},{"id":"b9218e2d.a91de","type":"trigger","z":"e4a05f0d.4915a","op1":"","op2":"0","op1type":"nul","op2type":"str","duration":"20","extend":true,"units":"min","reset":"","name":"watchdogtrigger","x":406.14452362060547,"y":199.1719150543213,"wires":[["9d97d63e.272b98"]]},{"id":"14505148.061dbf","type":"trigger","z":"e4a05f0d.4915a","op1":"","op2":"0","op1type":"nul","op2type":"str","duration":"20","extend":true,"units":"min","reset":"","name":"watchdogtrigger","x":387.01953125,"y":446.00390625,"wires":[["ddc04d4e.32e33"]]},{"id":"ddc04d4e.32e33","type":"function","z":"e4a05f0d.4915a","name":"watchdog","func":"\nmsg.payload = '{\"body\":\"No temperature updates received for a while!\",\"title\":\"Environment Status Fail\",\"type\":\"note\"}';\nmsg.headers = {};\nmsg.headers['Content-Type'] = 'application/json';\nmsg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nreturn msg;","outputs":1,"noerr":0,"x":617.0195388793945,"y":445.0039119720459,"wires":[["42b87665.c6de48","d8f048be.043a48"]]},{"id":"d8f048be.043a48","type":"debug","z":"e4a05f0d.4915a","name":"watchdog_debug","active":true,"console":"false","complete":"payload","x":950.140625,"y":443.94921875,"wires":[]},{"id":"16bbf159.9fecbf","type":"alexa-home","z":"b904d58d.d31878","conf":"1e145fc3.17918","device":"32218","acknoledge":true,"name":"Weihnachtsbaum","topic":"blabla","x":161.51171875,"y":256.61328411102295,"wires":[["82820609.991998","ecb080c7.139f"]]},{"id":"ecb080c7.139f","type":"switch","z":"b904d58d.d31878","name":"","property":"command","propertyType":"msg","rules":[{"t":"eq","v":"TurnOnRequest","vt":"str"},{"t":"eq","v":"TurnOffRequest","vt":"str"}],"checkall":"true","outputs":2,"x":345.51171875,"y":253.34375,"wires":[["e60a7e5f.9b888"],["4191726b.1a124c"]]},{"id":"8f435e9f.347e4","type":"mqtt out","z":"b904d58d.d31878","name":"","topic":"cmnd/Weihnachtsbaum/power","qos":"","retain":"true","broker":"14e86b97.592304","x":893.1406440734863,"y":255.64844036102295,"wires":[]},{"id":"e60a7e5f.9b888","type":"function","z":"b904d58d.d31878","name":"on","func":"\nmsg.payload = \"on\"\nreturn msg;","outputs":1,"noerr":0,"x":584.14453125,"y":250.23828125,"wires":[["8f435e9f.347e4"]]},{"id":"4191726b.1a124c","type":"function","z":"b904d58d.d31878","name":"off","func":"msg.payload =\"off\"\nreturn msg;","outputs":1,"noerr":0,"x":585.1484565734863,"y":286.23830223083496,"wires":[["8f435e9f.347e4"]]},{"id":"82820609.991998","type":"debug","z":"b904d58d.d31878","name":"","active":true,"console":"false","complete":"true","x":339.14453125,"y":372.69921875,"wires":[]}]
+[
+    {
+        "id": "e4a05f0d.4915a",
+        "type": "tab",
+        "label": "Doorstatus",
+        "disabled": true,
+        "info": ""
+    },
+    {
+        "id": "2f0582b8.de5d5e",
+        "type": "tab",
+        "label": "METAR",
+        "disabled": false,
+        "info": "Sets global var METAR_dew to current dewpoint"
+    },
+    {
+        "id": "b904d58d.d31878",
+        "type": "tab",
+        "label": "Alexa-Weihnachtsbaum",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "1db65893.9f8c27",
+        "type": "tab",
+        "label": "Tasmota",
+        "disabled": false,
+        "info": "This flow listens to the MQTT broker on the Sonoff Tasmota topic.\nExpected format of the incoming Sensor data is\n```\n{\n  \"Time\":\"2018-11-27T23:32:04\",\n  \"BME280\":{\n    \"Temperature\":23.6,\n    \"Humidity\":32.3,\n    \"Pressure\":1016.8\n  }\n  ,\"TempUnit\":\"C\"\n}\n```\nReceived Messages will be transformed into 4 messages going out to influxdb.\nThese have the format\n```\n{\n  payload: [{\n        \"value\": <measurement>\n    },\n    {\n        \"location\": location,\n        \"source\": source,\n        \"mac\": mac,\n        \"unit\": <unit of measurement>\n    }]\n}\n```\nand are routed to the correct influxdb series through different connectors.\n\nTemperature, Humidity, and Pressure are piped through verbatim.\nDewpoint is calculated in the function and piped into influxdb as well."
+    },
+    {
+        "id": "19b79c31.71fc04",
+        "type": "tab",
+        "label": "Tasmota Doorstatus",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "c730f8f3.d5cf18",
+        "type": "tab",
+        "label": "Devicestatus",
+        "disabled": false,
+        "info": "The following parameters will be stored in the \"devicestatus\" influxdb:\n\n- Uptime\n- Vcc Voltage\n- Wifi.RSSI\n\nTags: Sensor in topic (e.g. sonoff_755F13)\n\nenv/tele/sonoff_755F13/STATE\n{\n    \"Time\":\"2018-12-17T22:22:49\",\n    \"Uptime\":\"1T08:57:40\",\n    \"Vcc\":3.061,\n    \"POWER1\":\"ON\",\n    \"POWER2\":\"ON\",\n    \"Wifi\":{\n        \"AP\":1,\n        \"SSId\":\"Buschfunk\",\n        \"BSSId\":\"00:0D:67:4D:8C:31\",\n        \"Channel\":11,\n        \"RSSI\":52}\n}"
+    },
+    {
+        "id": "669dd5db.17cc1c",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "14e86b97.592304",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "192.168.2.5",
+        "port": "8883",
+        "tls": "6c3a7900.476b08",
+        "clientid": "",
+        "usetls": true,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "5de16f02.256ca",
+        "type": "influxdb",
+        "z": "",
+        "hostname": "192.168.2.5",
+        "port": "8086",
+        "protocol": "http",
+        "database": "doors",
+        "name": "doors",
+        "usetls": false,
+        "tls": ""
+    },
+    {
+        "id": "6bdddf0b.2d47e",
+        "type": "influxdb",
+        "z": "",
+        "hostname": "192.168.2.5",
+        "port": "8086",
+        "protocol": "http",
+        "database": "environment",
+        "name": "",
+        "usetls": false,
+        "tls": ""
+    },
+    {
+        "id": "1e145fc3.17918",
+        "type": "alexa-home-conf",
+        "z": "",
+        "username": "alexf"
+    },
+    {
+        "id": "6c3a7900.476b08",
+        "type": "tls-config",
+        "z": "",
+        "name": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "ca.crt.pem",
+        "servername": "cloudhost.local",
+        "verifyservercert": false
+    },
+    {
+        "id": "bcaa018a.053ce",
+        "type": "influxdb",
+        "z": "",
+        "hostname": "192.168.2.5",
+        "port": "8086",
+        "protocol": "http",
+        "database": "devicestatus",
+        "name": "devicestatus",
+        "usetls": false,
+        "tls": "6c3a7900.476b08"
+    },
+    {
+        "id": "ac5a64ca.d04838",
+        "type": "tls-config",
+        "z": "",
+        "name": "mqtt.bosch-iot-hub.com",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": false
+    },
+    {
+        "id": "4fdefebd.4598c",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "mqtt.bosch-iot-hub.com",
+        "broker": "mqtt.bosch-iot-hub.com",
+        "port": "8883",
+        "tls": "4a43d0e5.df111",
+        "clientid": "com.bosch_si.alf5koe:my-device-id-4712",
+        "usetls": true,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "4a43d0e5.df111",
+        "type": "tls-config",
+        "z": "",
+        "name": "IoT Hub",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "iothub.crt",
+        "servername": "",
+        "verifyservercert": false
+    },
+    {
+        "id": "6a9f9ca4.90e124",
+        "type": "http request",
+        "z": "2f0582b8.de5d5e",
+        "name": "Data source",
+        "method": "GET",
+        "url": "http://www.aviationweather.gov{{{payload}}}",
+        "tls": "",
+        "x": 250,
+        "y": 140,
+        "wires": [
+            [
+                "e54beeb5.bb632"
+            ]
+        ]
+    },
+    {
+        "id": "325df2d3.24195e",
+        "type": "inject",
+        "z": "2f0582b8.de5d5e",
+        "name": "Weather report",
+        "topic": "",
+        "payload": "/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&hoursBeforeNow=3&mostRecent=true&stationString=EDDL",
+        "payloadType": "str",
+        "repeat": "600",
+        "crontab": "",
+        "once": true,
+        "x": 87,
+        "y": 140,
+        "wires": [
+            [
+                "6a9f9ca4.90e124"
+            ]
+        ]
+    },
+    {
+        "id": "e54beeb5.bb632",
+        "type": "xml",
+        "z": "2f0582b8.de5d5e",
+        "name": "",
+        "x": 396,
+        "y": 140,
+        "wires": [
+            [
+                "39430a09.09b376",
+                "b8d1654f.3259a8"
+            ]
+        ]
+    },
+    {
+        "id": "351ce30a.b0f93c",
+        "type": "debug",
+        "z": "2f0582b8.de5d5e",
+        "name": "",
+        "active": false,
+        "console": "false",
+        "complete": "payload",
+        "x": 730,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "39430a09.09b376",
+        "type": "function",
+        "z": "2f0582b8.de5d5e",
+        "name": "Parse METAR",
+        "func": "var METARdata = msg.payload.response.data[0].METAR[0];\nvar wind = METARdata.wind_speed_kt[0];\nvar gusts = wind; //if wind_gust_kt is not present, value defaults to wind_speed_kt\n   if (typeof METARdata.wind_gust_kt != \"undefined\") {\n\t   gusts = METARdata.wind_gust_kt[0];\n       }\nvar altim = METARdata.altim_in_hg[0];\nvar pressure = Math.round(altim * 33.8637526); //convert hg to mb\nvar dew = parseFloat(METARdata.dewpoint_c[0]);\nvar temp = parseFloat(METARdata.temp_c[0]);\n\nglobal.set('METAR_dew',dew);\n\n//August-Roche-Magnus approximation to calculate humidity\nvar constA = 17.625;\nvar constB = 243.04;\nvar rh_numer = 100.0*Math.exp((constA*eval(dew))/(eval(dew)+constB));\nvar rh_denom = Math.exp((constA*eval(temp))/(eval(temp)+constB));\nvar rh_hum   = (rh_numer/rh_denom);\nvar humidity = Math.round(rh_hum);\n\n//msg.payload = ((wind) + (\",\") + (gusts) + (\",\") + (humidity) + (\",\") + (pressure) + (\",\") + (temp));\n\n\nvar msgtemp, msgdewpt, msgrelhum, msgbaro;\nmsgtemp = {payload : [{\n    \"value\" : temp\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"Celsius\",\n    \"source\" : \"METAR\"\n}]\n//measurement : {\n//    \"name\": \"temp\"\n//}\n};\n\n/////////////////////////////\nmsgdewpt = {payload : [{\n    \"value\" : dew\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"Celsius\",\n    \"source\" : \"METAR\"\n}]};\n//msgdewpt.measurement = {\n//    \"name\": \"dewPt\"\n//}\n/////////////////////////////\n\nmsgrelhum= {payload : [{\n    \"value\" : humidity\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"%\",\n    \"source\" : \"METAR\"\n}]};\n\n/////////////////////////////\nmsgbaro = {payload : [{\n    \"value\" : pressure\n},\n{\n    \"location\" : \"EDDL\",\n    \"unit\" : \"hPa\",\n    \"source\" : \"METAR\"\n}]};\n\nreturn [ msgtemp, msgdewpt, msgrelhum, msgbaro ];",
+        "outputs": "4",
+        "noerr": 0,
+        "x": 551,
+        "y": 140,
+        "wires": [
+            [
+                "351ce30a.b0f93c",
+                "5bfa94c0.31f68c"
+            ],
+            [
+                "8eec9996.94eaa8",
+                "351ce30a.b0f93c"
+            ],
+            [
+                "5d057668.6851f8",
+                "351ce30a.b0f93c"
+            ],
+            [
+                "95da0052.98e61",
+                "351ce30a.b0f93c"
+            ]
+        ],
+        "outputLabels": [
+            "temp",
+            "dewpt",
+            "relhum",
+            "pressure"
+        ]
+    },
+    {
+        "id": "7bc650ea.bef54",
+        "type": "comment",
+        "z": "2f0582b8.de5d5e",
+        "name": "NOAA Weather data",
+        "info": "Retrieving Finningly Airport METAR feed",
+        "x": 82,
+        "y": 101,
+        "wires": []
+    },
+    {
+        "id": "ef721908.1dcbe8",
+        "type": "influxdb out",
+        "z": "2f0582b8.de5d5e",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 850,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "b8d1654f.3259a8",
+        "type": "debug",
+        "z": "2f0582b8.de5d5e",
+        "name": "",
+        "active": false,
+        "console": "false",
+        "complete": "false",
+        "x": 515,
+        "y": 214,
+        "wires": []
+    },
+    {
+        "id": "5bfa94c0.31f68c",
+        "type": "influxdb out",
+        "z": "2f0582b8.de5d5e",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "temp",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 870,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "8eec9996.94eaa8",
+        "type": "influxdb out",
+        "z": "2f0582b8.de5d5e",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "dewPt",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 870,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "95da0052.98e61",
+        "type": "influxdb out",
+        "z": "2f0582b8.de5d5e",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "baro",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 860,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "5d057668.6851f8",
+        "type": "influxdb out",
+        "z": "2f0582b8.de5d5e",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "relHum",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 870,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "5e751814.15d468",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "temp",
+        "topic": "sensor/+/temperature/degreeCelsius",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 151.01953125,
+        "y": 682.00390625,
+        "wires": [
+            [
+                "2273872a.7cba88",
+                "d63d413.1893ac",
+                "14505148.061dbf"
+            ]
+        ]
+    },
+    {
+        "id": "f8d0c682.7e4c88",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "baro",
+        "topic": "sensor/+/barometer/hectoPascal",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 151.01953125,
+        "y": 622.00390625,
+        "wires": [
+            [
+                "2273872a.7cba88",
+                "d63d413.1893ac",
+                "14505148.061dbf"
+            ]
+        ]
+    },
+    {
+        "id": "51a58458.29448c",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "relHum",
+        "topic": "sensor/+/humidity/percentRelative",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 150.01953125,
+        "y": 574.00390625,
+        "wires": [
+            [
+                "2273872a.7cba88",
+                "d63d413.1893ac",
+                "14505148.061dbf"
+            ]
+        ]
+    },
+    {
+        "id": "82ef0e27.e4d7e",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "dewPt",
+        "topic": "sensor/+/humidity/dewPoint",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 151.01953125,
+        "y": 522.00390625,
+        "wires": [
+            [
+                "2273872a.7cba88",
+                "d63d413.1893ac",
+                "14505148.061dbf"
+            ]
+        ]
+    },
+    {
+        "id": "20a80a20.4f53e6",
+        "type": "influxdb out",
+        "z": "e4a05f0d.4915a",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "temp",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 711.01953125,
+        "y": 682.00390625,
+        "wires": []
+    },
+    {
+        "id": "2572ea75.bf25f6",
+        "type": "influxdb out",
+        "z": "e4a05f0d.4915a",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "dewPt",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 711.01953125,
+        "y": 522.00390625,
+        "wires": []
+    },
+    {
+        "id": "d63d413.1893ac",
+        "type": "function",
+        "z": "e4a05f0d.4915a",
+        "name": "sensor",
+        "func": "\n\n\nvar location, source, msgout;\n\n// Configure here where each Sensor is located and which Sensor module it uses\n\nif (msg.topic.indexOf(\"sensor/600194755a36\") > -1 ){\n    location = \"Studio\"\n    source = \"BME280\"\n}\n\nif (msg.topic.indexOf(\"sensor/84f3ebb3bc39\") > -1 ){\n    location = \"Keller\"\n    source = \"BME280\"\n}\n\nvar mac = msg.topic.substring(7,19);\nmsgout = {payload: [{\n        \"value\": parseFloat(msg.payload)\n    },\n    {\n        \"location\": location,\n        \"source\": source,\n        \"mac\": mac\n    }]}; \n\nif (msg.topic.indexOf(\"dewPoint\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [msgout, null, null, null]);\n}\n\nif (msg.topic.indexOf(\"percentRelative\") > -1 ) {\n    msgout.payload[1].unit =\"%\";\n    node.send ( [null, msgout, null, null]);\n}\n\nif (msg.topic.indexOf(\"hectoPascal\") > -1) {\n    msgout.payload[1].unit =\"hPa\";\n    node.send ( [null, null, msgout, null]);\n}\n\nif (msg.topic.indexOf(\"degreeCelsius\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [null, null, null, msgout]);\n}\n",
+        "outputs": "4",
+        "noerr": 0,
+        "x": 371.01953125,
+        "y": 522.00390625,
+        "wires": [
+            [
+                "88ccd802.18a3b8",
+                "2572ea75.bf25f6"
+            ],
+            [
+                "88ccd802.18a3b8",
+                "cf28b48c.d5e6b8"
+            ],
+            [
+                "88ccd802.18a3b8",
+                "760fe46a.b96a3c"
+            ],
+            [
+                "88ccd802.18a3b8",
+                "20a80a20.4f53e6"
+            ]
+        ]
+    },
+    {
+        "id": "88ccd802.18a3b8",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "true",
+        "x": 636.01953125,
+        "y": 779.00390625,
+        "wires": []
+    },
+    {
+        "id": "cf28b48c.d5e6b8",
+        "type": "influxdb out",
+        "z": "e4a05f0d.4915a",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "relHum",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 701.01953125,
+        "y": 570.00390625,
+        "wires": []
+    },
+    {
+        "id": "760fe46a.b96a3c",
+        "type": "influxdb out",
+        "z": "e4a05f0d.4915a",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "baro",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 699.01953125,
+        "y": 632.00390625,
+        "wires": []
+    },
+    {
+        "id": "2273872a.7cba88",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "raw_mqtt",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 420.13672637939453,
+        "y": 785.6874952316284,
+        "wires": []
+    },
+    {
+        "id": "59b29b74.3b8ee4",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "backdoor",
+        "topic": "sensor/+/backdoor",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 154.13670349121094,
+        "y": 229.35155963897705,
+        "wires": [
+            [
+                "986709cb.b6d538",
+                "5bec9ecb.7e3fa",
+                "91a55baa.d675c8",
+                "b9218e2d.a91de"
+            ]
+        ]
+    },
+    {
+        "id": "96578e86.55c9e",
+        "type": "mqtt in",
+        "z": "e4a05f0d.4915a",
+        "name": "garagedoor",
+        "topic": "sensor/+/garagedoor",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 158.14060974121094,
+        "y": 281.36327838897705,
+        "wires": [
+            [
+                "5bec9ecb.7e3fa",
+                "986709cb.b6d538",
+                "91a55baa.d675c8",
+                "b9218e2d.a91de"
+            ]
+        ]
+    },
+    {
+        "id": "42b87665.c6de48",
+        "type": "http request",
+        "z": "e4a05f0d.4915a",
+        "name": "pushbullet",
+        "method": "POST",
+        "ret": "txt",
+        "url": "https://api.pushbullet.com/v2/pushes",
+        "tls": "",
+        "x": 870.13671875,
+        "y": 260.1289005279541,
+        "wires": [
+            [
+                "8084eb7d.15aac8"
+            ]
+        ]
+    },
+    {
+        "id": "5bec9ecb.7e3fa",
+        "type": "function",
+        "z": "e4a05f0d.4915a",
+        "name": "pushbulletmsg",
+        "func": "var msgout;\nvar date, ToD;\nvar msg_intervall = 1800000 //30 min\ndate = new Date();\nToD = date.getHours();\n\n// when was the last message received\n// get stored values from flow\nvar last_garagedoor_rcvd=flow.get('last_garagedoor_rcvd') || 0;\nvar last_backdoor_rcvd=flow.get('last_backdoor_rcvd') || 0;\n\n//when was the last warning message sent\nvar last_garagedoor_sent=flow.get('last_garagedoor_sent') || 0;\nvar last_backdoor_sent=flow.get('last_backdoor_sent') || 0;\n\nnode.warn(\"last_garagedoor_rcvd: \"+last_garagedoor_rcvd);\nnode.warn(\"last_backdoor_rcvd: \"+last_backdoor_rcvd);\n\nif (msg.topic.indexOf(\"garagedoor\") > -1){\n    // avoid bounces\n    var diff = Date.now() - last_garagedoor_rcvd;\n    if (diff < 1000) return null;\n    //node.warn (\"diff: \"+diff)\n    msgout = {payload: '{\"body\":\"Das Garagentor steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}'};\n    last_garagedoor_rcvd = Date.now();\n}\n\nif (msg.topic.indexOf(\"backdoor\") > -1){\n    // avoid bounces\n    var diff = Date.now() - last_backdoor_rcvd;\n    if (diff < 1000) return null;\n    //node.warn (\"diff: \"+diff)\n    msgout = {payload: '{\"body\":\"Die Garagentür steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}'};\n    last_backdoor_rcvd = Date.now();\n}\n\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nflow.set('last_garagedoor_rcvd',last_garagedoor_rcvd);\nflow.set('last_backdoor_rcvd',last_backdoor_rcvd);\n\n// only send message if door is open\nif (msg.payload.indexOf(\"closed\") > -1) return;\n\n//only send messages at night\nif ((ToD > 5) && (ToD < 20)) return null;\nnode.warn (\"Time of Day: \" + ToD + \", sending message\");\n\n\n\n// only if last message was sent more than msg_interval (e.g. 30) mins before,\n// update the corresponding values in the flow\n// and actually send message\nif (msg.topic.indexOf(\"garagedoor\") > -1){\n    var diff = Date.now() - last_garagedoor_sent;\n    if (diff < msg_intervall) return null;\n    flow.set('last_garagedoor_sent', Date.now());\n}\n\nif (msg.topic.indexOf(\"backdoor\") > -1){\n    var diff = Date.now() - last_backdoor_sent;\n    if (diff < msg_intervall) return null;\n    flow.set('last_backdoor_sent',Date.now());\n}\n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 403.13282012939453,
+        "y": 259.2421865463257,
+        "wires": [
+            [
+                "42b87665.c6de48",
+                "94896caf.31bad"
+            ]
+        ]
+    },
+    {
+        "id": "986709cb.b6d538",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "false",
+        "x": 399.13282775878906,
+        "y": 152.93359184265137,
+        "wires": []
+    },
+    {
+        "id": "8084eb7d.15aac8",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "pushbullet_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 1076.148452758789,
+        "y": 256.93359756469727,
+        "wires": []
+    },
+    {
+        "id": "94896caf.31bad",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "payload",
+        "x": 591.1367340087891,
+        "y": 301.93749618530273,
+        "wires": []
+    },
+    {
+        "id": "91a55baa.d675c8",
+        "type": "function",
+        "z": "e4a05f0d.4915a",
+        "name": "influx",
+        "func": "var msgout, location, status;\n\nif (msg.topic.indexOf(\"garagedoor\") > -1) location = \"garage_front\";\nif (msg.topic.indexOf(\"backdoor\") > -1) location = \"garage_back\";\nnode.warn (location);\n\nif (msg.payload.indexOf(\"closed\") > -1) status = 0;\nif (msg.payload.indexOf(\"open\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": location,\n    }]\n}; \n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 377.1367492675781,
+        "y": 105.2265567779541,
+        "wires": [
+            [
+                "b5f11eb.1be4de",
+                "2cb312e9.067bee"
+            ]
+        ]
+    },
+    {
+        "id": "b5f11eb.1be4de",
+        "type": "influxdb out",
+        "z": "e4a05f0d.4915a",
+        "influxdb": "5de16f02.256ca",
+        "name": "",
+        "measurement": "status",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 726.1485443115234,
+        "y": 102.5351619720459,
+        "wires": []
+    },
+    {
+        "id": "2cb312e9.067bee",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "",
+        "active": false,
+        "console": "false",
+        "complete": "false",
+        "x": 555.1367340087891,
+        "y": 27.69923210144043,
+        "wires": []
+    },
+    {
+        "id": "9d97d63e.272b98",
+        "type": "function",
+        "z": "e4a05f0d.4915a",
+        "name": "watchdog",
+        "func": "var last_garagedoor_rcvd=flow.get('last_garagedoor_rcvd') || 0;\nmsg = {payload: '{\"body\":\"Last door status received at \"+last_garagedoor_rcvd+\"!\",\"title\":\"Door Status Fail\",\"type\":\"note\"}'};\nmsg.headers = {};\nmsg.headers['Content-Type'] = 'application/json';\nmsg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 661.1367225646973,
+        "y": 198.9922161102295,
+        "wires": [
+            [
+                "42b87665.c6de48",
+                "d8f048be.043a48"
+            ]
+        ]
+    },
+    {
+        "id": "b9218e2d.a91de",
+        "type": "trigger",
+        "z": "e4a05f0d.4915a",
+        "op1": "",
+        "op2": "trigger",
+        "op1type": "nul",
+        "op2type": "str",
+        "duration": "20",
+        "extend": true,
+        "units": "min",
+        "reset": "",
+        "bytopic": "all",
+        "name": "watchdogtrigger",
+        "x": 406.14452362060547,
+        "y": 199.1719150543213,
+        "wires": [
+            [
+                "9d97d63e.272b98"
+            ]
+        ]
+    },
+    {
+        "id": "14505148.061dbf",
+        "type": "trigger",
+        "z": "e4a05f0d.4915a",
+        "op1": "",
+        "op2": "trigger",
+        "op1type": "date",
+        "op2type": "str",
+        "duration": "20",
+        "extend": true,
+        "units": "min",
+        "reset": "",
+        "bytopic": "all",
+        "name": "watchdogtrigger",
+        "x": 400,
+        "y": 420,
+        "wires": [
+            [
+                "ddc04d4e.32e33",
+                "12785b2.9fd72a5"
+            ]
+        ]
+    },
+    {
+        "id": "ddc04d4e.32e33",
+        "type": "function",
+        "z": "e4a05f0d.4915a",
+        "name": "watchdog",
+        "func": "\n\nnode.status({text: \"Started..\"+msg.payload}); \nif (msg.payload === \"trigger\") {\n    node.status({text:\"Triggered\"}); // clear the status decoration\n    msg.payload = '{\"body\":\"No temperature updates received for a while!\",\"title\":\"Environment Status Fail\",\"type\":\"note\"}';\n    msg.headers = {};\n    msg.headers['Content-Type'] = 'application/json';\n    msg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\n    return msg;\n}\n\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 580,
+        "y": 460,
+        "wires": [
+            [
+                "d8f048be.043a48",
+                "14505148.061dbf"
+            ]
+        ]
+    },
+    {
+        "id": "d8f048be.043a48",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "watchdog_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 950.140625,
+        "y": 443.94921875,
+        "wires": []
+    },
+    {
+        "id": "16bbf159.9fecbf",
+        "type": "alexa-home",
+        "z": "b904d58d.d31878",
+        "conf": "1e145fc3.17918",
+        "device": "32218",
+        "acknoledge": true,
+        "name": "Weihnachtsbaum",
+        "topic": "blabla",
+        "x": 161.51171875,
+        "y": 256.61328411102295,
+        "wires": [
+            [
+                "82820609.991998",
+                "ecb080c7.139f"
+            ]
+        ]
+    },
+    {
+        "id": "ecb080c7.139f",
+        "type": "switch",
+        "z": "b904d58d.d31878",
+        "name": "",
+        "property": "command",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "TurnOnRequest",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "TurnOffRequest",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "outputs": 2,
+        "x": 345.51171875,
+        "y": 253.34375,
+        "wires": [
+            [
+                "e60a7e5f.9b888"
+            ],
+            [
+                "4191726b.1a124c"
+            ]
+        ]
+    },
+    {
+        "id": "8f435e9f.347e4",
+        "type": "mqtt out",
+        "z": "b904d58d.d31878",
+        "name": "",
+        "topic": "cmnd/sonoff_315698/power",
+        "qos": "",
+        "retain": "true",
+        "broker": "14e86b97.592304",
+        "x": 883.1406440734863,
+        "y": 255.64844036102295,
+        "wires": []
+    },
+    {
+        "id": "e60a7e5f.9b888",
+        "type": "function",
+        "z": "b904d58d.d31878",
+        "name": "on",
+        "func": "\nmsg.payload = \"on\"\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 584.14453125,
+        "y": 250.23828125,
+        "wires": [
+            [
+                "8f435e9f.347e4"
+            ]
+        ]
+    },
+    {
+        "id": "4191726b.1a124c",
+        "type": "function",
+        "z": "b904d58d.d31878",
+        "name": "off",
+        "func": "msg.payload =\"off\"\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 585.1484565734863,
+        "y": 286.23830223083496,
+        "wires": [
+            [
+                "8f435e9f.347e4"
+            ]
+        ]
+    },
+    {
+        "id": "82820609.991998",
+        "type": "debug",
+        "z": "b904d58d.d31878",
+        "name": "",
+        "active": true,
+        "console": "false",
+        "complete": "true",
+        "x": 339.14453125,
+        "y": 372.69921875,
+        "wires": []
+    },
+    {
+        "id": "f2d9ba71.b85b68",
+        "type": "mqtt in",
+        "z": "1db65893.9f8c27",
+        "name": "Tasmota Sensor",
+        "topic": "env/tele/+/SENSOR",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 120,
+        "y": 120,
+        "wires": [
+            [
+                "46185743.aa94c8",
+                "9377767a.77d038"
+            ]
+        ]
+    },
+    {
+        "id": "bc8dcb86.431b28",
+        "type": "function",
+        "z": "1db65893.9f8c27",
+        "name": "Sensorsplit",
+        "func": "\n\n\nvar location, source, msgout;\nvar temp_correction=0;\nvar temp = 0.0;\n\n// Configure here where each Sensor is located and which Sensor module it uses\nstudio_mac = \"755A36\" //\nkeller_mac = \"B3BC39\" //84f3ebb3bc39\n\nif (msg.topic.indexOf(studio_mac) > -1 ){\n    location = \"Studio\"\n    source = \"BME280\"\n    mac = studio_mac\n}\nelse if (msg.topic.indexOf(keller_mac) > -1 ){\n    location = \"Keller\"\n    source = \"BME280\"\n    mac = keller_mac\n    temp_correction=-4.0;\n}\nelse\n  return\n\nflow.set('lastmessage', Date.now())\n\ntemp = msg.payload.BME280.Temperature + temp_correction;\n\n//{\n//  \"Time\":\"2018-11-27T22:17:04\",\n//  \"BME280\":{\n//       \"Temperature\":23.7,\n//       \"Humidity\":31.2,\n//       \"Pressure\":1016.8\n//   },\n//   \"TempUnit\":\"C\"\n//}\n\n// split the payload into separate messages to pipe into influx\n\nmsgout = {payload: [{\n        \"value\": temp\n    },\n    {\n        \"location\": location,\n        \"source\": source,\n        \"mac\": mac,\n        \"unit\": \"C\"\n    }]}; \n\nnode.send ( [msgout, null, null, null]);\n\nmsgout.payload[0].value = msg.payload.BME280.Humidity\nmsgout.payload[1].unit = \"%\"\nnode.send ( [null, msgout, null, null]);\n\nmsgout.payload[0].value = msg.payload.BME280.Pressure\nmsgout.payload[1].unit = \"hPa\"\nnode.send ( [null, null, msgout, null]);\n\n//dewpoint calculation from http://www.meteo.psu.edu/~jyh10/classes/meteo473/java-tdew.htm\ntem2 = msg.payload.BME280.Temperature;\nr = msg.payload.BME280.Humidity;\ntem = -1.0*tem2;\nes = 6.112*Math.exp(-1.0*17.67*tem/(243.5 - tem));\ned = r/100.0*es;\neln = Math.log(ed/6.112);\ntd = -243.5*eln/(eln - 17.67 );\n// rounding from https://gordonlesti.com/inaccurate-rounding-with-decimal-digits/\ndewpoint = Math.round( Math.round( td * 1000 ) / 10 ) / 100;\n\nmsgout.payload[0].value = dewpoint\nmsgout.payload[1].unit = \"C\"\nnode.send ( [null, null, null, msgout]);\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 470,
+        "y": 220,
+        "wires": [
+            [
+                "4c320595.5d2d1c",
+                "a6495aba.9c41b8"
+            ],
+            [
+                "3758e58c.6ab96a",
+                "4c320595.5d2d1c"
+            ],
+            [
+                "1ac38fa1.49751",
+                "4c320595.5d2d1c"
+            ],
+            [
+                "4c320595.5d2d1c",
+                "ce3b4296.25acc",
+                "c7b20f5e.d4334",
+                "8798e26a.83a3a"
+            ]
+        ]
+    },
+    {
+        "id": "12785b2.9fd72a5",
+        "type": "debug",
+        "z": "e4a05f0d.4915a",
+        "name": "trigger_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 590,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "46185743.aa94c8",
+        "type": "debug",
+        "z": "1db65893.9f8c27",
+        "name": "tasmota_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 660,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "9377767a.77d038",
+        "type": "json",
+        "z": "1db65893.9f8c27",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 310,
+        "y": 220,
+        "wires": [
+            [
+                "46185743.aa94c8",
+                "bc8dcb86.431b28"
+            ]
+        ]
+    },
+    {
+        "id": "4c320595.5d2d1c",
+        "type": "debug",
+        "z": "1db65893.9f8c27",
+        "name": "Split_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 650,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "a6495aba.9c41b8",
+        "type": "influxdb out",
+        "z": "1db65893.9f8c27",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "temp",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 730,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "ce3b4296.25acc",
+        "type": "influxdb out",
+        "z": "1db65893.9f8c27",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "dewPt",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 730,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "3758e58c.6ab96a",
+        "type": "influxdb out",
+        "z": "1db65893.9f8c27",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "relHum",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 730,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "1ac38fa1.49751",
+        "type": "influxdb out",
+        "z": "1db65893.9f8c27",
+        "influxdb": "6bdddf0b.2d47e",
+        "name": "",
+        "measurement": "baro",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 720,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "774df6c2.0a7e88",
+        "type": "inject",
+        "z": "1db65893.9f8c27",
+        "name": "set trigger",
+        "topic": "",
+        "payload": "reset",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 600,
+        "wires": [
+            [
+                "8798e26a.83a3a"
+            ]
+        ]
+    },
+    {
+        "id": "8798e26a.83a3a",
+        "type": "trigger",
+        "z": "1db65893.9f8c27",
+        "op1": "",
+        "op2": "",
+        "op1type": "date",
+        "op2type": "date",
+        "duration": "20",
+        "extend": true,
+        "units": "min",
+        "reset": "",
+        "bytopic": "all",
+        "name": "watchdogtrigger",
+        "x": 340,
+        "y": 580,
+        "wires": [
+            [
+                "4023796d.846cc8"
+            ]
+        ]
+    },
+    {
+        "id": "4023796d.846cc8",
+        "type": "function",
+        "z": "1db65893.9f8c27",
+        "name": "watchdog",
+        "func": "\n//flow.lastmessage set by Sensorsplit\nvar lastmessage = flow.get('lastmessage')||0;\nvar duration = Date.now() - lastmessage\nnode.warn (\"watchdog duration: \"+duration);\n\nnode.status({text: \"Last reset..\"+msg.payload + \". After \" +duration+\"ms of happiness.\"}); \n\nif (duration < 1200000)\n  return\n  \nvar msgout = {};\n//msg.payload = '{\"body\":\"No temperature updates received for a while!\",\"title\":\"Environment Status Fail\",\"type\":\"note\"}';\nmsgout.payload = {};\nmsgout.payload.body = \"No temperature updates received for \"+duration+\"ms!\"\nmsgout.payload.title = \"Environment Status Fail\"\nmsgout.payload.type = \"note\"\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\nmsgout.reset = \"1\"\nreturn msgout;\n\n\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 620,
+        "wires": [
+            [
+                "b3fc3434.a49e38",
+                "8798e26a.83a3a"
+            ]
+        ]
+    },
+    {
+        "id": "d9b7a1c5.1182b",
+        "type": "http request",
+        "z": "1db65893.9f8c27",
+        "name": "pushbullet",
+        "method": "POST",
+        "ret": "txt",
+        "url": "https://api.pushbullet.com/v2/pushes",
+        "tls": "",
+        "x": 990,
+        "y": 180,
+        "wires": [
+            [
+                "65d9aef3.88882"
+            ]
+        ]
+    },
+    {
+        "id": "b3fc3434.a49e38",
+        "type": "debug",
+        "z": "1db65893.9f8c27",
+        "name": "watchdog_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 890.140625,
+        "y": 603.94921875,
+        "wires": []
+    },
+    {
+        "id": "65d9aef3.88882",
+        "type": "debug",
+        "z": "1db65893.9f8c27",
+        "name": "pushbullet_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 1190,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "b180e620.2dbcd8",
+        "type": "inject",
+        "z": "e4a05f0d.4915a",
+        "name": "set trigger",
+        "topic": "",
+        "payload": "reset",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "x": 150,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "260a7cb6.7f9734",
+        "type": "mqtt in",
+        "z": "19b79c31.71fc04",
+        "name": "Backdoor",
+        "topic": "env/stat/sonoff_755F13/POWER1",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "98554668.7985a8",
+                "23c918eb.b08e68"
+            ]
+        ]
+    },
+    {
+        "id": "5b03abf.e696354",
+        "type": "mqtt in",
+        "z": "19b79c31.71fc04",
+        "name": "Frontdoor",
+        "topic": "env/stat/sonoff_755F13/POWER2",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 180,
+        "y": 220,
+        "wires": [
+            [
+                "98554668.7985a8",
+                "457609f6.bd3278"
+            ]
+        ]
+    },
+    {
+        "id": "98554668.7985a8",
+        "type": "debug",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 390,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "93973f75.6fe08",
+        "type": "mqtt in",
+        "z": "19b79c31.71fc04",
+        "name": "Status",
+        "topic": "env/tele/sonoff_755F13/STATE",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "98554668.7985a8",
+                "37c022b5.8850de",
+                "74cad884.fde788"
+            ]
+        ]
+    },
+    {
+        "id": "457609f6.bd3278",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "influx_front",
+        "func": "var msgout, location, status;\n\nif (msg.payload.indexOf(\"OFF\") > -1) status = 0;\nif (msg.payload.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_front\",\n    }]\n}; \n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 410,
+        "y": 220,
+        "wires": [
+            [
+                "37bf379b.fe4bf8",
+                "2cec5313.1f8f8c",
+                "5575ab50.c2a8b4"
+            ]
+        ]
+    },
+    {
+        "id": "37bf379b.fe4bf8",
+        "type": "influxdb out",
+        "z": "19b79c31.71fc04",
+        "influxdb": "5de16f02.256ca",
+        "name": "",
+        "measurement": "status",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 630,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "23c918eb.b08e68",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "influx_back",
+        "func": "var msgout, location, status;\n\nif (msg.payload.indexOf(\"OFF\") > -1) status = 0;\nif (msg.payload.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_back\",\n    }]\n}; \n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 410,
+        "y": 160,
+        "wires": [
+            [
+                "37bf379b.fe4bf8",
+                "2cec5313.1f8f8c",
+                "5575ab50.c2a8b4"
+            ]
+        ]
+    },
+    {
+        "id": "2cec5313.1f8f8c",
+        "type": "debug",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 570,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "37c022b5.8850de",
+        "type": "trigger",
+        "z": "19b79c31.71fc04",
+        "op1": "",
+        "op2": "trigger",
+        "op1type": "nul",
+        "op2type": "str",
+        "duration": "20",
+        "extend": true,
+        "units": "min",
+        "reset": "",
+        "bytopic": "all",
+        "name": "watchdogtrigger",
+        "x": 420,
+        "y": 320,
+        "wires": [
+            [
+                "3d36bd51.974652"
+            ]
+        ]
+    },
+    {
+        "id": "3d36bd51.974652",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "watchdog",
+        "func": "//flow.lastmessage set by pushbulletmessage\nvar lastmessage = flow.get('lastmessage')||0;\nvar duration = Date.now() - lastmessage\nnode.warn (\"watchdog duration: \"+duration);\n\nnode.status({text: \"Last reset..\"+msg.payload + \". After \" +duration+\"ms of happiness.\"}); \n\nif (duration < 1200000)\n  return\n  \nvar msgout = {};\n//msg.payload = '{\"body\":\"No temperature updates received for a while!\",\"title\":\"Environment Status Fail\",\"type\":\"note\"}';\nmsgout.payload = {};\nmsgout.payload.body = \"No door status received for \"+duration+\"ms!\"\nmsgout.payload.title = \"Door Status Fail\"\nmsgout.payload.type = \"note\"\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\nmsgout.reset = \"1\"\nreturn msgout;\n\n\n//msg = {payload: '{\"body\":\"No door status received for a while!\",\"title\":\"Door Status Fail\",\"type\":\"note\"}'};\n//msg.headers = {};\n//msg.headers['Content-Type'] = 'application/json';\n//msg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\n//return msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 320,
+        "wires": [
+            [
+                "6b8ae751.4c4bc8",
+                "75c03212.06f3cc",
+                "37c022b5.8850de"
+            ]
+        ]
+    },
+    {
+        "id": "6b8ae751.4c4bc8",
+        "type": "http request",
+        "z": "19b79c31.71fc04",
+        "name": "pushbullet",
+        "method": "POST",
+        "ret": "txt",
+        "url": "https://api.pushbullet.com/v2/pushes",
+        "tls": "",
+        "x": 770,
+        "y": 320,
+        "wires": [
+            [
+                "e32122a4.58446"
+            ]
+        ]
+    },
+    {
+        "id": "e32122a4.58446",
+        "type": "debug",
+        "z": "19b79c31.71fc04",
+        "name": "pushbullet_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 970,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "75c03212.06f3cc",
+        "type": "debug",
+        "z": "19b79c31.71fc04",
+        "name": "watchdog_debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "x": 970,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "5a907252.57a6fc",
+        "type": "inject",
+        "z": "19b79c31.71fc04",
+        "name": "set trigger",
+        "topic": "",
+        "payload": "reset",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "x": 190,
+        "y": 380,
+        "wires": [
+            [
+                "37c022b5.8850de"
+            ]
+        ]
+    },
+    {
+        "id": "39fcdf78.f3826",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "influx_status",
+        "func": "var msgout, location, status;\n\n// status=0 means OPEN\nif (msg.payload.POWER1.indexOf(\"OFF\") > -1) status = 0;\n// status=1 means CLOSED\nif (msg.payload.POWER1.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_back\",\n    }]\n}; \n\nnode.send(msgout);\n\nif (msg.payload.POWER2.indexOf(\"OFF\") > -1) status = 0;\nif (msg.payload.POWER2.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_front\",\n    }]\n}; \n\n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 530,
+        "y": 280,
+        "wires": [
+            [
+                "2cec5313.1f8f8c",
+                "37bf379b.fe4bf8",
+                "5575ab50.c2a8b4"
+            ]
+        ]
+    },
+    {
+        "id": "74cad884.fde788",
+        "type": "json",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 390,
+        "y": 280,
+        "wires": [
+            [
+                "39fcdf78.f3826"
+            ]
+        ]
+    },
+    {
+        "id": "5575ab50.c2a8b4",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "pushbulletmsg",
+        "func": "var msgout = {};\nvar date, ToD;\nvar msg_intervall = 1800000 //30 min\ndate = new Date();\n\n// timestamp when the last message was received\n// used by watchdog\nflow.set('lastmessage', Date.now())\n\nToD = date.getHours();\n\n//value 1 means door closed\nif (msg.payload[0].value == 1) return null;\n\n//when was the last warning message sent\nvar last_garagedoor_sent=flow.get('last_garagedoor_sent') || 0;\nvar last_backdoor_sent=flow.get('last_backdoor_sent') || 0;\n\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.fFQGFv7AOZcDGIvrvukiaWMMxIV9fKxc';\n\n//only send messages at night\nif ((ToD > 5) && (ToD < 20)) return null;\nnode.warn (\"Time of Day: \" + ToD + \", sending message\");\n\n// only if last message was sent more than msg_interval (e.g. 30) mins before,\n// update the corresponding values in the flow\n// and actually send message\nif (msg.payload[1].location.indexOf(\"garage_front\") > -1){\n    var diff = Date.now() - last_garagedoor_sent;\n    if (diff < msg_intervall) return null;\n    msgout.payload = '{\"body\":\"Das Garagentor steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    flow.set('last_garagedoor_sent', Date.now());\n}\n\nif (msg.payload[1].location.indexOf(\"garage_back\") > -1){\n    msgout.payload= '{\"body\":\"Die Garagentür steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    var diff = Date.now() - last_backdoor_sent;\n//    if (diff < msg_intervall) return null;\n    flow.set('last_backdoor_sent',Date.now());\n}\n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 780,
+        "y": 220,
+        "wires": [
+            [
+                "6b8ae751.4c4bc8",
+                "75c03212.06f3cc"
+            ]
+        ]
+    },
+    {
+        "id": "45aff7f6.cad178",
+        "type": "mqtt in",
+        "z": "c730f8f3.d5cf18",
+        "name": "env_state",
+        "topic": "env/tele/+/STATE",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 230,
+        "y": 220,
+        "wires": [
+            [
+                "4d2092ff.0307ac",
+                "85be123f.111f1"
+            ]
+        ]
+    },
+    {
+        "id": "f1e2c0.1a723d4",
+        "type": "mqtt in",
+        "z": "c730f8f3.d5cf18",
+        "name": "socket_state",
+        "topic": "tele/+/STATE",
+        "qos": "2",
+        "broker": "14e86b97.592304",
+        "x": 240,
+        "y": 280,
+        "wires": [
+            [
+                "4d2092ff.0307ac",
+                "85be123f.111f1"
+            ]
+        ]
+    },
+    {
+        "id": "d59f5ffa.63e5b",
+        "type": "debug",
+        "z": "c730f8f3.d5cf18",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 540,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "4d2092ff.0307ac",
+        "type": "json",
+        "z": "c730f8f3.d5cf18",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 390,
+        "y": 260,
+        "wires": [
+            [
+                "d59f5ffa.63e5b"
+            ]
+        ]
+    },
+    {
+        "id": "bcbb5637.4cf2c8",
+        "type": "influxdb out",
+        "z": "c730f8f3.d5cf18",
+        "influxdb": "bcaa018a.053ce",
+        "name": "devicestatus",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 590,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "3e252da.173b6d2",
+        "type": "debug",
+        "z": "c730f8f3.d5cf18",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 560,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "85be123f.111f1",
+        "type": "function",
+        "z": "c730f8f3.d5cf18",
+        "name": "uptime",
+        "func": "//node.warn(msg);\n\nmsg_json= JSON.parse(msg.payload);\n//node.warn(msg_json);\n\nmsgout = {};\n\n\nvar topicarr = msg.topic.split('/');\nvar sensor = \"\";\nvar uptime = 0;\nvar vcc = msg_json.Vcc;\nvar rssi = msg_json.Wifi.RSSI;\n\n\ntopicarr.forEach(function(element){\n   if (element.indexOf('sonoff') > -1) {\n       sensor=element;\n   }\n});\n\n//convert uptime into seconds\n\nuptimearr = msg_json.Uptime.split('T');\nuptimearr_hms = uptimearr[1].split(':');\nuptime_d = parseInt(uptimearr[0])*24*3600;\nuptime_h = parseInt(uptimearr_hms[0])*3600;\nuptime_m = parseInt(uptimearr_hms[1])*60;\nuptime = uptime_d+uptime_h+uptime_m+parseInt(uptimearr_hms[2],10);\nuptimestr = uptime.toString();\n\nmsgout = {payload: [{\n        \"value\": uptimestr\n    },\n    {\n        \"sensor\": sensor,\n    }]\n}; \nmsgout.measurement = \"uptime\"\nnode.send(msgout);\n\nmsgout.measurement = \"vcc\";\nmsgout.payload[0].value=vcc;\nnode.send(msgout);\n\nmsgout.measurement = \"rssi\";\nmsgout.payload[0].value=rssi;\n\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 520,
+        "wires": [
+            [
+                "3e252da.173b6d2",
+                "bcbb5637.4cf2c8"
+            ]
+        ]
+    },
+    {
+        "id": "363ee668.1156da",
+        "type": "mqtt out",
+        "z": "669dd5db.17cc1c",
+        "name": "com.bosch_si.alf5koe:my-device-id-4712",
+        "topic": "telemetry/t6870db2266c84e09986c107c9f16127d_hub/com.bosch_si.alf5koe:my-device-id-4712",
+        "qos": "",
+        "retain": "",
+        "broker": "4fdefebd.4598c",
+        "x": 560,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "256858b3.0537a8",
+        "type": "function",
+        "z": "669dd5db.17cc1c",
+        "name": "",
+        "func": "pl='{\"topic\": \"com.bosch_si.alf5koe/my-device-id-4712/things/twin/commands/modify\",\"headers\": {\"response-required\": false},\"path\": \"/features/barometricpressure/properties\",\"value\" : {\"status\" : {\"value\": {\"currentMeasured\": 2999, \"minMeasured\": 900, \"maxMeasured\": 1100}}, \"configuration\" : {\"seaLevel\": 0} } }'\n\nmsg.payload = pl;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 280,
+        "y": 120,
+        "wires": [
+            [
+                "363ee668.1156da",
+                "be883b5b.fe9018"
+            ]
+        ]
+    },
+    {
+        "id": "be883b5b.fe9018",
+        "type": "debug",
+        "z": "669dd5db.17cc1c",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 520,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "e6d038fa.795d58",
+        "type": "inject",
+        "z": "669dd5db.17cc1c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 120,
+        "y": 140,
+        "wires": [
+            [
+                "256858b3.0537a8"
+            ]
+        ]
+    },
+    {
+        "id": "88a954b1.38e998",
+        "type": "function",
+        "z": "1db65893.9f8c27",
+        "name": "toIoTHub",
+        "func": "\n\n\nvar location, source, msgout;\nvar temp_correction=0;\nvar temp = 0.0;\n\n// Configure here where each Sensor is located and which Sensor module it uses\nstudio_mac = \"755A36\" //\nkeller_mac = \"B3BC39\" //84f3ebb3bc39\n\nif (msg.topic.indexOf(studio_mac) > -1 ){\n    location = \"Studio\"\n    source = \"BME280\"\n    mac = studio_mac\n}\n\nif (msg.topic.indexOf(keller_mac) > -1 ){\n //   location = \"Keller\"\n //   source = \"BME280\"\n //   mac = keller_mac\n //   temp_correction=-4.0;\n return;\n}\n\n\n//{\n//  \"Time\":\"2018-11-27T22:17:04\",\n//  \"BME280\":{\n//       \"Temperature\":23.7,\n//       \"Humidity\":31.2,\n//       \"Pressure\":1016.8\n//   },\n//   \"TempUnit\":\"C\"\n//}\n\n// split the payload into separate messages to pipe into influx\n\n    msgout= {payload: {\n        \"topic\": \"com.bosch_si.alf5koe/my-device-id-4712/things/twin/commands/modify\",\n        \"headers\": {\"response-required\": false},\n        \"path\": \"/features/barometricpressure/properties\",\n        \"value\" : {\n            \"status\" : {\n                \"value\": {\n                    \"currentMeasured\": msg.payload.BME280.Pressure,\n                    \"minMeasured\": 900,\n                    \"maxMeasured\": 1100\n                }\n            },\n            \"configuration\" : {\n                \"seaLevel\": 0\n            } \n        }\n    }};\n    \nnode.send (msgout);\ntemp = msg.payload.BME280.Temperature + temp_correction;\nmsgout.payload.path= \"/features/temperature/properties\"\nmsgout.payload.value.status.value.currentMeasured=temp\nnode.send (msgout);\n\nreturn msgout;    \n    \n//////////////////////////////////////////////////////////////7\n\nmsgout = {payload: [{\n        \"value\": temp\n    },\n    {\n        \"location\": location,\n        \"source\": source,\n        \"mac\": mac,\n        \"unit\": \"C\"\n    }]}; \n\nnode.send ( [msgout, null, null, null]);\n\nmsgout.payload[0].value = msg.payload.BME280.Humidity\nmsgout.payload[1].unit = \"%\"\nnode.send ( [null, msgout, null, null]);\n\nmsgout.payload[0].value = msg.payload.BME280.Pressure\nmsgout.payload[1].unit = \"hPa\"\nnode.send ( [null, null, msgout, null]);\n\n//dewpoint calculation from http://www.meteo.psu.edu/~jyh10/classes/meteo473/java-tdew.htm\ntem2 = msg.payload.BME280.Temperature;\nr = msg.payload.BME280.Humidity;\ntem = -1.0*tem2;\nes = 6.112*Math.exp(-1.0*17.67*tem/(243.5 - tem));\ned = r/100.0*es;\neln = Math.log(ed/6.112);\ntd = -243.5*eln/(eln - 17.67 );\n// rounding from https://gordonlesti.com/inaccurate-rounding-with-decimal-digits/\ndewpoint = Math.round( Math.round( td * 1000 ) / 10 ) / 100;\n\nmsgout.payload[0].value = dewpoint\nmsgout.payload[1].unit = \"C\"\nnode.send ( [null, null, null, msgout]);\n\n\n\n\n\nvar location, source, msgout;\n\n// Configure here where each Sensor is located and which Sensor module it uses\n\nif (msg.topic.indexOf(\"sensor/600194755a36\") > -1 ){\n    location = \"Studio\"\n    source = \"BME280\"\n}\n\nif (msg.topic.indexOf(\"sensor/84f3ebb3bc39\") > -1 ){\n//    location = \"Keller\"\n//    source = \"BME280\"\n    return;\n}\nif (msg.topic.indexOf(\"hectoPascal\") > -1) {\n    msgout= {payload: {\n        \"topic\": \"com.bosch_si.alf5koe/my-device-id-4712/things/twin/commands/modify\",\n        \"headers\": {\"response-required\": false},\n        \"path\": \"/features/barometricpressure/properties\",\n        \"value\" : {\n            \"status\" : {\n                \"value\": {\n                    \"currentMeasured\": parseFloat(msg.payload),\n                    \"minMeasured\": 900,\n                    \"maxMeasured\": 1100\n                }\n            },\n            \"configuration\" : {\n                \"seaLevel\": 0\n            } \n        }\n    }};\n}\n\nreturn msgout;\n\n////////////////////////////\n\nif (msg.topic.indexOf(\"dewPoint\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [msgout, null, null, null]);\n}\n\nif (msg.topic.indexOf(\"percentRelative\") > -1 ) {\n    msgout.payload[1].unit =\"%\";\n    node.send ( [null, msgout, null, null]);\n}\n\n\nif (msg.topic.indexOf(\"degreeCelsius\") > -1 ) {\n    msgout.payload[1].unit =\"Celsius\";\n    node.send ( [null, null, null, msgout]);\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 500,
+        "y": 500,
+        "wires": [
+            [
+                "87b631eb.ead38",
+                "faa618b8.66df98"
+            ]
+        ]
+    },
+    {
+        "id": "faa618b8.66df98",
+        "type": "debug",
+        "z": "1db65893.9f8c27",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 670,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "87b631eb.ead38",
+        "type": "mqtt out",
+        "z": "1db65893.9f8c27",
+        "name": "com.bosch_si.alf5koe:my-device-id-4712",
+        "topic": "telemetry/t6870db2266c84e09986c107c9f16127d_hub/com.bosch_si.alf5koe:my-device-id-4712",
+        "qos": "",
+        "retain": "",
+        "broker": "4fdefebd.4598c",
+        "x": 770,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "c7b20f5e.d4334",
+        "type": "function",
+        "z": "1db65893.9f8c27",
+        "name": "dewptcompare",
+        "func": "//only run for values from Keller\nif (msg.payload[1].location.indexOf(\"Keller\") < 0)\n  return;\n\nvar METAR_dew = global.get('METAR_dew')||0;\nvar dew = msg.payload[0].value\n\n// windowstate 0 = closed\n// windowstate 1 = open\nvar windowstate = flow.get('windowstate')||0;\nvar newwindowstate=0;\n\n// we want a low dewpt inside (little moisture in the air)\n// so if the dewpoint inside becomes higher than the outside dewpt, we need to open the window\n// if the dewpoint inside becomes lower than the outside dewpt, we need to close the window\n// if the inside temp drops below 15°C, we need to close the window anyway\n\nif (METAR_dew <= dew){\n  newwindowstate = 1\n  node.warn(\"window needs to be in OPEN state\")\n  msg.payload.action=\"OPEN the window\"\n}\nelse\n{\n  newwindowstate = 0\n  node.warn(\"window needs to be in CLOSED state\")\n  msg.payload.action=\"Close the window\"\n}\n\nif (newwindowstate != windowstate){\n  windowstate = newwindowstate;\n  flow.set('windowstate',windowstate)\n  node.warn(\"windowstate needs to be changed\")\n  node.send(msg)\n}\n\nreturn;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1000,
+        "y": 100,
+        "wires": [
+            [
+                "ec82d2fe.6da9a"
+            ]
+        ]
+    },
+    {
+        "id": "ec82d2fe.6da9a",
+        "type": "function",
+        "z": "1db65893.9f8c27",
+        "name": "writemessage",
+        "func": "\n//\"body\":\"No door status received for a while!\",\n\nmsgout = {payload: '{\"title\":\"ACTION Required\",\"type\":\"note\"}'};\nmsgout.payload.body = msg.payload.action;\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nreturn msgout;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1000,
+        "y": 140,
+        "wires": [
+            [
+                "d9b7a1c5.1182b"
+            ]
+        ]
+    }
+]
