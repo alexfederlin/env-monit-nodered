@@ -14,13 +14,6 @@
         "info": "Sets global var METAR_dew to current dewpoint"
     },
     {
-        "id": "b904d58d.d31878",
-        "type": "tab",
-        "label": "Alexa-Weihnachtsbaum",
-        "disabled": false,
-        "info": ""
-    },
-    {
         "id": "1db65893.9f8c27",
         "type": "tab",
         "label": "Tasmota",
@@ -35,6 +28,13 @@
         "info": ""
     },
     {
+        "id": "b904d58d.d31878",
+        "type": "tab",
+        "label": "Alexa-Weihnachtsbaum",
+        "disabled": false,
+        "info": ""
+    },
+    {
         "id": "c730f8f3.d5cf18",
         "type": "tab",
         "label": "Devicestatus",
@@ -45,6 +45,13 @@
         "id": "669dd5db.17cc1c",
         "type": "tab",
         "label": "Flow 1",
+        "disabled": true,
+        "info": ""
+    },
+    {
+        "id": "870d541e.7adf48",
+        "type": "tab",
+        "label": "Flow 2",
         "disabled": false,
         "info": ""
     },
@@ -52,7 +59,7 @@
         "id": "14e86b97.592304",
         "type": "mqtt-broker",
         "z": "",
-        "name": "",
+        "name": "rauschhost mqtt",
         "broker": "192.168.2.5",
         "port": "8883",
         "tls": "6c3a7900.476b08",
@@ -90,7 +97,7 @@
         "port": "8086",
         "protocol": "http",
         "database": "environment",
-        "name": "",
+        "name": "influx",
         "usetls": false,
         "tls": ""
     },
@@ -144,6 +151,7 @@
         "id": "4fdefebd.4598c",
         "type": "mqtt-broker",
         "z": "",
+        "d": true,
         "name": "mqtt.bosch-iot-hub.com",
         "broker": "mqtt.bosch-iot-hub.com",
         "port": "8883",
@@ -176,6 +184,14 @@
         "caname": "iothub.crt",
         "servername": "",
         "verifyservercert": false
+    },
+    {
+        "id": "49aaa783.ce23c8",
+        "type": "light-scheduler-settings",
+        "z": "",
+        "name": "my settings",
+        "latitude": "51.21",
+        "longitude": "6.5"
     },
     {
         "id": "6a9f9ca4.90e124",
@@ -687,8 +703,8 @@
         "active": false,
         "console": "false",
         "complete": "false",
-        "x": 555.1367340087891,
-        "y": 27.69923210144043,
+        "x": 550,
+        "y": 20,
         "wires": []
     },
     {
@@ -822,6 +838,7 @@
             }
         ],
         "checkall": "true",
+        "repair": false,
         "outputs": 2,
         "x": 345.51171875,
         "y": 253.34375,
@@ -898,6 +915,7 @@
         "name": "Tasmota Sensor",
         "topic": "env/tele/+/SENSOR",
         "qos": "2",
+        "datatype": "auto",
         "broker": "14e86b97.592304",
         "x": 120,
         "y": 120,
@@ -1177,8 +1195,9 @@
         "type": "mqtt in",
         "z": "19b79c31.71fc04",
         "name": "Backdoor",
-        "topic": "env/stat/sonoff_755F13/POWER1",
+        "topic": "stat/sonoff_6D6243/POWER1",
         "qos": "2",
+        "datatype": "auto",
         "broker": "14e86b97.592304",
         "x": 180,
         "y": 160,
@@ -1194,8 +1213,9 @@
         "type": "mqtt in",
         "z": "19b79c31.71fc04",
         "name": "Frontdoor",
-        "topic": "env/stat/sonoff_755F13/POWER2",
+        "topic": "stat/sonoff_6D6243/POWER2",
         "qos": "2",
+        "datatype": "auto",
         "broker": "14e86b97.592304",
         "x": 180,
         "y": 220,
@@ -1216,6 +1236,7 @@
         "console": false,
         "tostatus": false,
         "complete": "true",
+        "targetType": "full",
         "x": 390,
         "y": 80,
         "wires": []
@@ -1225,15 +1246,15 @@
         "type": "mqtt in",
         "z": "19b79c31.71fc04",
         "name": "Status",
-        "topic": "env/tele/sonoff_755F13/STATE",
+        "topic": "tele/sonoff_6D6243/STATE",
         "qos": "2",
+        "datatype": "auto",
         "broker": "14e86b97.592304",
         "x": 170,
-        "y": 320,
+        "y": 280,
         "wires": [
             [
                 "98554668.7985a8",
-                "37c022b5.8850de",
                 "74cad884.fde788"
             ]
         ]
@@ -1252,7 +1273,7 @@
             [
                 "37bf379b.fe4bf8",
                 "2cec5313.1f8f8c",
-                "5575ab50.c2a8b4"
+                "1e9edf8e.50eae"
             ]
         ]
     },
@@ -1265,7 +1286,7 @@
         "measurement": "status",
         "precision": "",
         "retentionPolicy": "",
-        "x": 630,
+        "x": 770,
         "y": 160,
         "wires": []
     },
@@ -1283,7 +1304,7 @@
             [
                 "37bf379b.fe4bf8",
                 "2cec5313.1f8f8c",
-                "5575ab50.c2a8b4"
+                "1e9edf8e.50eae"
             ]
         ]
     },
@@ -1302,56 +1323,20 @@
         "wires": []
     },
     {
-        "id": "37c022b5.8850de",
-        "type": "trigger",
-        "z": "19b79c31.71fc04",
-        "op1": "",
-        "op2": "trigger",
-        "op1type": "nul",
-        "op2type": "str",
-        "duration": "20",
-        "extend": true,
-        "units": "min",
-        "reset": "",
-        "bytopic": "all",
-        "name": "watchdogtrigger",
-        "x": 420,
-        "y": 320,
-        "wires": [
-            [
-                "3d36bd51.974652"
-            ]
-        ]
-    },
-    {
-        "id": "3d36bd51.974652",
-        "type": "function",
-        "z": "19b79c31.71fc04",
-        "name": "watchdog",
-        "func": "//flow.lastmessage set by pushbulletmessage\nvar lastmessage = flow.get('lastmessage')||0;\nvar duration = Date.now() - lastmessage\nnode.warn (\"watchdog duration: \"+duration);\n\nnode.status({text: \"Last reset..\"+msg.payload + \". After \" +duration+\"ms of happiness.\"}); \n\nif (duration < 1200000)\n  return\n  \nvar msgout = {};\n//msg.payload = '{\"body\":\"No temperature updates received for a while!\",\"title\":\"Environment Status Fail\",\"type\":\"note\"}';\nmsgout.payload = {};\nmsgout.payload.body = \"No door status received for \"+duration+\"ms!\"\nmsgout.payload.title = \"Door Status Fail\"\nmsgout.payload.type = \"note\"\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\nmsgout.reset = \"1\"\nreturn msgout;\n\n\n//msg = {payload: '{\"body\":\"No door status received for a while!\",\"title\":\"Door Status Fail\",\"type\":\"note\"}'};\n//msg.headers = {};\n//msg.headers['Content-Type'] = 'application/json';\n//msg.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\n//return msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 600,
-        "y": 320,
-        "wires": [
-            [
-                "6b8ae751.4c4bc8",
-                "75c03212.06f3cc",
-                "37c022b5.8850de"
-            ]
-        ]
-    },
-    {
         "id": "6b8ae751.4c4bc8",
         "type": "http request",
         "z": "19b79c31.71fc04",
         "name": "pushbullet",
         "method": "POST",
         "ret": "txt",
+        "paytoqs": false,
         "url": "https://api.pushbullet.com/v2/pushes",
         "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
         "x": 770,
-        "y": 320,
+        "y": 340,
         "wires": [
             [
                 "e32122a4.58446"
@@ -1369,7 +1354,7 @@
         "tostatus": false,
         "complete": "true",
         "x": 970,
-        "y": 320,
+        "y": 340,
         "wires": []
     },
     {
@@ -1382,29 +1367,10 @@
         "console": false,
         "tostatus": false,
         "complete": "payload",
+        "targetType": "msg",
         "x": 970,
-        "y": 260,
+        "y": 280,
         "wires": []
-    },
-    {
-        "id": "5a907252.57a6fc",
-        "type": "inject",
-        "z": "19b79c31.71fc04",
-        "name": "set trigger",
-        "topic": "",
-        "payload": "reset",
-        "payloadType": "str",
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": 0.1,
-        "x": 190,
-        "y": 380,
-        "wires": [
-            [
-                "37c022b5.8850de"
-            ]
-        ]
     },
     {
         "id": "39fcdf78.f3826",
@@ -1414,13 +1380,13 @@
         "func": "var msgout, location, status;\n\n// status=0 means OPEN\nif (msg.payload.POWER1.indexOf(\"OFF\") > -1) status = 0;\n// status=1 means CLOSED\nif (msg.payload.POWER1.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_back\",\n    }]\n}; \n\nnode.send(msgout);\n\nif (msg.payload.POWER2.indexOf(\"OFF\") > -1) status = 0;\nif (msg.payload.POWER2.indexOf(\"ON\") > -1) status = 1;\n\nmsgout = {payload: [{\n        \"value\": status\n    },\n    {\n        \"location\": \"garage_front\",\n    }]\n}; \n\n\n\nreturn msgout;",
         "outputs": 1,
         "noerr": 0,
-        "x": 530,
+        "x": 590,
         "y": 280,
         "wires": [
             [
                 "2cec5313.1f8f8c",
                 "37bf379b.fe4bf8",
-                "5575ab50.c2a8b4"
+                "1e9edf8e.50eae"
             ]
         ]
     },
@@ -1441,23 +1407,6 @@
         ]
     },
     {
-        "id": "5575ab50.c2a8b4",
-        "type": "function",
-        "z": "19b79c31.71fc04",
-        "name": "pushbulletmsg",
-        "func": "var msgout = {};\nvar date, ToD;\nvar msg_intervall = 1800000 //30 min\ndate = new Date();\n\n// timestamp when the last message was received\n// used by watchdog\nflow.set('lastmessage', Date.now())\n\nToD = date.getHours();\n\n//value 1 means door closed\nif (msg.payload[0].value == 1) return null;\n\n//when was the last warning message sent\nvar last_garagedoor_sent=flow.get('last_garagedoor_sent') || 0;\nvar last_backdoor_sent=flow.get('last_backdoor_sent') || 0;\n\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.fFQGFv7AOZcDGIvrvukiaWMMxIV9fKxc';\n\n//only send messages at night\nif ((ToD > 5) && (ToD < 20)) return null;\nnode.warn (\"Time of Day: \" + ToD + \", sending message\");\n\n// only if last message was sent more than msg_interval (e.g. 30) mins before,\n// update the corresponding values in the flow\n// and actually send message\nif (msg.payload[1].location.indexOf(\"garage_front\") > -1){\n    var diff = Date.now() - last_garagedoor_sent;\n    if (diff < msg_intervall) return null;\n    msgout.payload = '{\"body\":\"Das Garagentor steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    flow.set('last_garagedoor_sent', Date.now());\n}\n\nif (msg.payload[1].location.indexOf(\"garage_back\") > -1){\n    msgout.payload= '{\"body\":\"Die Garagentür steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    var diff = Date.now() - last_backdoor_sent;\n//    if (diff < msg_intervall) return null;\n    flow.set('last_backdoor_sent',Date.now());\n}\n\n\nreturn msgout;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 780,
-        "y": 220,
-        "wires": [
-            [
-                "6b8ae751.4c4bc8",
-                "75c03212.06f3cc"
-            ]
-        ]
-    },
-    {
         "id": "45aff7f6.cad178",
         "type": "mqtt in",
         "z": "c730f8f3.d5cf18",
@@ -1465,7 +1414,7 @@
         "topic": "env/tele/+/STATE",
         "qos": "2",
         "broker": "14e86b97.592304",
-        "x": 230,
+        "x": 240,
         "y": 220,
         "wires": [
             [
@@ -1482,7 +1431,7 @@
         "topic": "tele/+/STATE",
         "qos": "2",
         "broker": "14e86b97.592304",
-        "x": 240,
+        "x": 250,
         "y": 280,
         "wires": [
             [
@@ -1501,8 +1450,8 @@
         "console": false,
         "tostatus": false,
         "complete": "false",
-        "x": 540,
-        "y": 260,
+        "x": 590,
+        "y": 220,
         "wires": []
     },
     {
@@ -1513,8 +1462,8 @@
         "property": "payload",
         "action": "",
         "pretty": false,
-        "x": 390,
-        "y": 260,
+        "x": 430,
+        "y": 220,
         "wires": [
             [
                 "d59f5ffa.63e5b"
@@ -1531,7 +1480,7 @@
         "precision": "",
         "retentionPolicy": "",
         "x": 590,
-        "y": 320,
+        "y": 280,
         "wires": []
     },
     {
@@ -1544,8 +1493,8 @@
         "console": false,
         "tostatus": false,
         "complete": "true",
-        "x": 560,
-        "y": 380,
+        "x": 570,
+        "y": 340,
         "wires": []
     },
     {
@@ -1553,11 +1502,11 @@
         "type": "function",
         "z": "c730f8f3.d5cf18",
         "name": "uptime",
-        "func": "//node.warn(msg);\n\nmsg_json= JSON.parse(msg.payload);\n//node.warn(msg_json);\n\nmsgout = {};\n\n\nvar topicarr = msg.topic.split('/');\nvar sensor = \"\";\nvar uptime = 0;\nvar vcc = msg_json.Vcc;\nvar rssi = msg_json.Wifi.RSSI;\n\n\ntopicarr.forEach(function(element){\n   if (element.indexOf('sonoff') > -1) {\n       sensor=element;\n   }\n});\n\n//convert uptime into seconds\n\nuptimearr = msg_json.Uptime.split('T');\nuptimearr_hms = uptimearr[1].split(':');\nuptime_d = parseInt(uptimearr[0])*24*3600;\nuptime_h = parseInt(uptimearr_hms[0])*3600;\nuptime_m = parseInt(uptimearr_hms[1])*60;\nuptime = uptime_d+uptime_h+uptime_m+parseInt(uptimearr_hms[2],10);\nuptimestr = uptime.toString();\n\nmsgout = {payload: [{\n        \"value\": uptimestr\n    },\n    {\n        \"sensor\": sensor,\n    }]\n}; \nmsgout.measurement = \"uptime\"\nnode.send(msgout);\n\nmsgout.measurement = \"vcc\";\nmsgout.payload[0].value=vcc;\nnode.send(msgout);\n\nmsgout.measurement = \"rssi\";\nmsgout.payload[0].value=rssi;\n\n\nreturn msgout;",
+        "func": "//node.warn(msg);\n\nmsg_json= JSON.parse(msg.payload);\n//node.warn(msg_json);\n\nmsgout = {};\n\n\nvar topicarr = msg.topic.split('/');\nvar sensor = \"\";\nvar uptime = msg_json.UptimeSec.toString();\nvar Sleep = msg_json.Sleep;\nvar LoadAvg = msg_json.LoadAvg;\nvar MqttCount = msg_json.MqttCount;\nvar Heap = msg_json.Heap;\n\nvar rssi = msg_json.Wifi.RSSI;\nvar Channel = msg_json.Wifi.Channel\nvar LinkCount = msg_json.Wifi.LinkCount\nvar Downtime = msg_json.Wifi.Downtime;\n\n\ntopicarr.forEach(function(element){\n   if (element.indexOf('sonoff') > -1) {\n       sensor=element;\n   }\n});\n\n//convert uptime into seconds\n\n//uptimearr = msg_json.Uptime.split('T');\n//uptimearr_hms = uptimearr[1].split(':');\n//uptime_d = parseInt(uptimearr[0])*24*3600;\n//uptime_h = parseInt(uptimearr_hms[0])*3600;\n//uptime_m = parseInt(uptimearr_hms[1])*60;\n//uptime = uptime_d+uptime_h+uptime_m+parseInt(uptimearr_hms[2],10);\n//uptimestr = uptime.toString();\n\n//convert downtime into seconds\n\ndowntimearr = Downtime.split('T');\ndowntimearr_hms = downtimearr[1].split(':');\ndowntime_d = parseInt(downtimearr[0])*24*3600;\ndowntime_h = parseInt(downtimearr_hms[0])*3600;\ndowntime_m = parseInt(downtimearr_hms[1])*60;\ndowntime = downtime_d+downtime_h+downtime_m+parseInt(downtimearr_hms[2],10);\n\ndowntimestr = downtime.toString()\n\nmsgout = {payload: [{\n        \"value\": uptime\n    },\n    {\n        \"sensor\": sensor,\n    }]\n}; \nmsgout.measurement = \"uptime\"\nnode.send(msgout);\n\nmsgout.measurement = \"Sleep\";\nmsgout.payload[0].value=Sleep;\nnode.send(msgout);\n\nmsgout.measurement = \"rssi\";\nmsgout.payload[0].value=rssi;\nnode.send(msgout);\n\nmsgout.measurement = \"Heap\";\nmsgout.payload[0].value=Heap;\nnode.send(msgout);\n\nmsgout.measurement = \"LoadAvg\";\nmsgout.payload[0].value=LoadAvg;\nnode.send(msgout);\n\nmsgout.measurement = \"MqttCount\";\nmsgout.payload[0].value=MqttCount;\nnode.send(msgout);\n\nmsgout.measurement = \"WifiChannel\";\nmsgout.payload[0].value=Channel;\nnode.send(msgout);\n\nmsgout.measurement = \"WifiLinkCount\";\nmsgout.payload[0].value=LinkCount;\nnode.send(msgout);\n\nmsgout.measurement = \"WifiDowntime\";\nmsgout.payload[0].value=downtimestr;\nreturn msgout;",
         "outputs": 1,
         "noerr": 0,
-        "x": 400,
-        "y": 520,
+        "x": 430,
+        "y": 280,
         "wires": [
             [
                 "3e252da.173b6d2",
@@ -1702,6 +1651,223 @@
         "wires": [
             [
                 "d9b7a1c5.1182b"
+            ]
+        ]
+    },
+    {
+        "id": "4cf8a9db.408478",
+        "type": "mqtt out",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "topic": "cmnd/sonoff_522FC1/power",
+        "qos": "",
+        "retain": "",
+        "broker": "14e86b97.592304",
+        "x": 620,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "539056b1.74e968",
+        "type": "inject",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "topic": "",
+        "payload": "on",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 180,
+        "y": 680,
+        "wires": [
+            [
+                "4cf8a9db.408478"
+            ]
+        ]
+    },
+    {
+        "id": "f28121e5.71a42",
+        "type": "inject",
+        "z": "19b79c31.71fc04",
+        "name": "",
+        "topic": "",
+        "payload": "off",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 180,
+        "y": 760,
+        "wires": [
+            [
+                "4cf8a9db.408478"
+            ]
+        ]
+    },
+    {
+        "id": "3a842dbb.b31782",
+        "type": "light-scheduler",
+        "z": "19b79c31.71fc04",
+        "settings": "49aaa783.ce23c8",
+        "events": "[{\"start\":{\"dow\":1,\"mod\":1020},\"end\":{\"dow\":1,\"mod\":1380}},{\"start\":{\"dow\":2,\"mod\":1020},\"end\":{\"dow\":2,\"mod\":1380}},{\"start\":{\"dow\":3,\"mod\":1020},\"end\":{\"dow\":3,\"mod\":1380}},{\"start\":{\"dow\":4,\"mod\":1020},\"end\":{\"dow\":4,\"mod\":1380}},{\"start\":{\"dow\":5,\"mod\":1020},\"end\":{\"dow\":5,\"mod\":1380}},{\"start\":{\"dow\":6,\"mod\":1020},\"end\":{\"dow\":6,\"mod\":1380}},{\"start\":{\"dow\":6,\"mod\":0},\"end\":{\"dow\":6,\"mod\":30}},{\"start\":{\"dow\":0,\"mod\":0},\"end\":{\"dow\":0,\"mod\":30}},{\"start\":{\"dow\":0,\"mod\":1020},\"end\":{\"dow\":0,\"mod\":1380}}]",
+        "topic": "",
+        "name": "studiolights",
+        "onPayload": "ON",
+        "onPayloadType": "str",
+        "offPayload": "OFF",
+        "offPayloadType": "str",
+        "onlyWhenDark": true,
+        "scheduleRndMax": 0,
+        "sunElevationThreshold": "3",
+        "sunShowElevationInStatus": false,
+        "outputfreq": "output.statechange.startup",
+        "x": 420,
+        "y": 800,
+        "wires": [
+            [
+                "4cf8a9db.408478"
+            ]
+        ]
+    },
+    {
+        "id": "50642f36.74fb6",
+        "type": "function",
+        "z": "870d541e.7adf48",
+        "name": "eventhub_auth",
+        "func": "msg.headers = {};\n//msg.headers['Authorization'] = 'SharedAccessSignature sr=xfr-servicebus-1.servicebus.windows.net%2Fiox-bcds_parking_sensors-advantech-events-euwest1&sig=W4BTJ4VfQMRIiNff98JjuGIt4V6Ree58oC7KQKh7TSE%3D&se=1612904766&skn=sender';\n// Endpoint=sb://cb-presales-hubs.servicebus.windows.net/;SharedAccessKeyName=listensend;SharedAccessKey=sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A=;EntityPath=alf5koe_parkingdirect\n// sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A=\n    global.get('utf8')\n    var uri, saName, saKey;\n    uri='cb-presales-hubs.servicebus.windows.net/alf5koe_parkingdirect'\n    saName='listensend'\n    saKey='sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A='\n\n\n    var encoded = encodeURIComponent(uri); \n    var now = new Date(); \n    var week = 60*60*24*7;\n    var ttl = Math.round(now.getTime() / 1000) + week;\n    var signature = encoded + '\\n' + ttl; \n    var signatureUTF8 = utf8.encode(signature); \n    var hash = crypto.createHmac('sha256', saKey).update(signatureUTF8).digest('base64');\n    //var hash = crypto.createHmac('sha256', saKey).update(signature).digest('base64'); \n    var auth = 'SharedAccessSignature sr=' + encoded + '&sig=' +  \n        encodeURIComponent(hash) + '&se=' + ttl + '&skn=' + saName; \n    msg.headers['Authorization'] = auth;\n    \n//msg.headers['Authorization'] = 'SharedAccessSignature sr=cb-presales-hubs.servicebus.windows.net%2Falf5koe_parkingdirect&sig=sTW8wcEqnXylhdX9dJ%2F52sK5ubjoXw151uG8haccx3A%3D&se=1612904766&skn=listensend';\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 430,
+        "y": 560,
+        "wires": [
+            [
+                "87e4c9fb.30a878"
+            ]
+        ]
+    },
+    {
+        "id": "87e4c9fb.30a878",
+        "type": "debug",
+        "z": "870d541e.7adf48",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 680,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "b6016141.5ebfb",
+        "type": "inject",
+        "z": "870d541e.7adf48",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 180,
+        "y": 560,
+        "wires": [
+            [
+                "50642f36.74fb6"
+            ]
+        ]
+    },
+    {
+        "id": "55b48d3d.430724",
+        "type": "inject",
+        "z": "19b79c31.71fc04",
+        "name": "watchdogtimer",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "60",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 200,
+        "y": 340,
+        "wires": [
+            [
+                "a50a4a72.ed6178"
+            ]
+        ]
+    },
+    {
+        "id": "a50a4a72.ed6178",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "regular watchdog check",
+        "func": "//flow.lastmessage set by pushbulletmessage\nvar lastmessage = flow.get('lastmessage')||0;\nvar duration = Date.now() - lastmessage\nnode.warn (\"elapsed time since last message was received: \"+duration);\n\nvar msgout = {};\nmsgout.payload = {};\nmsgout.payload.type = \"note\"\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.Od8HFYCakNIZPTvPUByeiRl1sa43Tjs4';\n\nif (duration < 1200000){\n    if (flow.get('errorstatus') === true){\n        msgout.payload.body = \"Errorstatus resolved. Last message received \"+duration+\"ms ago\"\n        msgout.payload.title = \"Door Status Good\"\n        node.warn (\"All is well again. Error status resolved. Last Last message received \"+duration+\"ms ago.\")\n        flow.set('errorstatus', false)\n        return msgout\n    }\n    flow.set('errorstatus', false)\n    node.warn (\"All is well. Last Last message received \"+duration+\"ms ago.\")\n    return\n}\n\nflow.set('errorstatus', true)\nnode.warn (\"Something is wrong! Error status active. Last Last message received \"+duration+\"ms ago.\")\n\nvar dursincelasterrormsg = Date.now()-flow.get('lasterrormessage');\n\nif (dursincelasterrormsg>1200000){\n    flow.set('lasterrormessage', Date.now())\n    node.warn (\"Last Error message sent \"+dursincelasterrormsg+\"ms ago. Sending error message\")\n    msgout.payload.body = \"No door status received for \"+duration+\"ms!\"\n    msgout.payload.title = \"Door Status Fail\"\n    return msgout\n}\n\nnode.warn (\"Last Error message sent \"+dursincelasterrormsg+\"ms ago. keeping quiet for now\")\nreturn",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 450,
+        "y": 340,
+        "wires": [
+            [
+                "6b8ae751.4c4bc8",
+                "75c03212.06f3cc"
+            ]
+        ]
+    },
+    {
+        "id": "220472e2.40f40e",
+        "type": "inject",
+        "z": "19b79c31.71fc04",
+        "name": "Initial",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "x": 170,
+        "y": 420,
+        "wires": [
+            [
+                "1a36f7eb.fbe7e8"
+            ]
+        ]
+    },
+    {
+        "id": "1a36f7eb.fbe7e8",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "Initialize lasterrormessage",
+        "func": "node.warn (\"Initializing flow variable lasterrormessage to \"+Date.now())\nflow.set('lasterrormessage', Date.now())\n\nvar doorstatus=[];\nvar last_msg_sent=[];\ndoorstatus[0]=1;\ndoorstatus[1]=1;\nlast_msg_sent[0] = 0;\nlast_msg_sent[1] = 0;\nflow.set('doorstatus',doorstatus);\nflow.set('last_msg_sent', last_msg_sent);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 450,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1e9edf8e.50eae",
+        "type": "function",
+        "z": "19b79c31.71fc04",
+        "name": "setmessages",
+        "func": "var msgout = {};\nvar date, ToD;\nvar msg_intervall = 1800000 //30 min\ndate = new Date();\n\n// timestamp when the last message was received\n// used by watchdog\nflow.set('lastmessage', Date.now())\n\nToD = date.getHours();\n\nmsgout.headers = {};\nmsgout.headers['Content-Type'] = 'application/json';\nmsgout.headers['Access-Token'] = 'o.fFQGFv7AOZcDGIvrvukiaWMMxIV9fKxc';\n\nvar id;\n\nvar last_msg_sent = flow.get('last_msg_sent');\nvar doorstatus =  flow.get('doorstatus');\n\nif (msg.payload[1].location.indexOf(\"garage_front\") > -1){\n    id = 0;\n}\nelse if (msg.payload[1].location.indexOf(\"garage_back\") > -1){\n    id = 1;\n}\n\n// door currently closed. Just check if we need to clear the warning\nif (msg.payload[0].value == 1){\n    // if everything was closed before, all is good\n    if (doorstatus[id] == 1) return null;\n    \n    doorstatus[id]= msg.payload[0].value\n    \n    if (id === 0){\n      msgout.payload = '{\"body\":\"Das Garagentor ist jetzt geschlossen!\",\"title\":\"Tür zu\",\"type\":\"note\"}';\n    }\n    if (id == 1){\n      msgout.payload = '{\"body\":\"Die Garagentür ist jetzt geschlossen!\",\"title\":\"Tür zu\",\"type\":\"note\"}';\n    }\n}\n\nif (msg.payload[0].value === 0){\n    \n    var diff = Date.now() - last_msg_sent[id];\n    if (diff < msg_intervall) return null;\n    \n    if (id === 0){\n        msgout.payload = '{\"body\":\"Das Garagentor steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    }\n    if (id == 1){\n        msgout.payload = '{\"body\":\"Die Garagentür steht offen!\",\"title\":\"Türalarm\",\"type\":\"note\"}';\n    }\n    \n    last_msg_sent[id]=Date.now;\n\n}\n\ndoorstatus[id]= msg.payload[0].value\nflow.set('doorstatus',doorstatus);\nflow.set('last_msg_sent', last_msg_sent);\n\n\nreturn msgout;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 220,
+        "wires": [
+            [
+                "75c03212.06f3cc",
+                "6b8ae751.4c4bc8"
             ]
         ]
     }
