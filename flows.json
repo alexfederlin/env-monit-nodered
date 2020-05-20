@@ -49,13 +49,6 @@
         "info": ""
     },
     {
-        "id": "870d541e.7adf48",
-        "type": "tab",
-        "label": "Flow 2",
-        "disabled": false,
-        "info": ""
-    },
-    {
         "id": "14e86b97.592304",
         "type": "mqtt-broker",
         "z": "",
@@ -1729,57 +1722,6 @@
         "wires": [
             [
                 "4cf8a9db.408478"
-            ]
-        ]
-    },
-    {
-        "id": "50642f36.74fb6",
-        "type": "function",
-        "z": "870d541e.7adf48",
-        "name": "eventhub_auth",
-        "func": "msg.headers = {};\n//msg.headers['Authorization'] = 'SharedAccessSignature sr=xfr-servicebus-1.servicebus.windows.net%2Fiox-bcds_parking_sensors-advantech-events-euwest1&sig=W4BTJ4VfQMRIiNff98JjuGIt4V6Ree58oC7KQKh7TSE%3D&se=1612904766&skn=sender';\n// Endpoint=sb://cb-presales-hubs.servicebus.windows.net/;SharedAccessKeyName=listensend;SharedAccessKey=sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A=;EntityPath=alf5koe_parkingdirect\n// sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A=\n    global.get('utf8')\n    var uri, saName, saKey;\n    uri='cb-presales-hubs.servicebus.windows.net/alf5koe_parkingdirect'\n    saName='listensend'\n    saKey='sTW8wcEqnXylhdX9dJ/52sK5ubjoXw151uG8haccx3A='\n\n\n    var encoded = encodeURIComponent(uri); \n    var now = new Date(); \n    var week = 60*60*24*7;\n    var ttl = Math.round(now.getTime() / 1000) + week;\n    var signature = encoded + '\\n' + ttl; \n    var signatureUTF8 = utf8.encode(signature); \n    var hash = crypto.createHmac('sha256', saKey).update(signatureUTF8).digest('base64');\n    //var hash = crypto.createHmac('sha256', saKey).update(signature).digest('base64'); \n    var auth = 'SharedAccessSignature sr=' + encoded + '&sig=' +  \n        encodeURIComponent(hash) + '&se=' + ttl + '&skn=' + saName; \n    msg.headers['Authorization'] = auth;\n    \n//msg.headers['Authorization'] = 'SharedAccessSignature sr=cb-presales-hubs.servicebus.windows.net%2Falf5koe_parkingdirect&sig=sTW8wcEqnXylhdX9dJ%2F52sK5ubjoXw151uG8haccx3A%3D&se=1612904766&skn=listensend';\n\nreturn msg;",
-        "outputs": 1,
-        "noerr": 0,
-        "x": 430,
-        "y": 560,
-        "wires": [
-            [
-                "87e4c9fb.30a878"
-            ]
-        ]
-    },
-    {
-        "id": "87e4c9fb.30a878",
-        "type": "debug",
-        "z": "870d541e.7adf48",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "x": 680,
-        "y": 580,
-        "wires": []
-    },
-    {
-        "id": "b6016141.5ebfb",
-        "type": "inject",
-        "z": "870d541e.7adf48",
-        "name": "",
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "x": 180,
-        "y": 560,
-        "wires": [
-            [
-                "50642f36.74fb6"
             ]
         ]
     },
